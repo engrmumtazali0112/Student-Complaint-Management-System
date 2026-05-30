@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:file_picker/file_picker.dart';
 import 'student_login.dart';
 
 class StudentRegisterScreen extends StatefulWidget {
@@ -14,18 +17,130 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController fatherNameController = TextEditingController();
   final TextEditingController rollNoController = TextEditingController();
-  final TextEditingController departmentController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-  final TextEditingController confirmPasswordController =TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
 
   bool isLoading = false;
+  bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
+  
+  // Profile picture - web compatible
+  Uint8List? selectedImageBytes;
+  String? selectedImageName;
+  bool isUploadingPicture = false;
+
+  final List<String> departments = [
+    'Select Department',
+    'Computer Science',
+    'Electrical Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Business Administration',
+  ];
+  String? selectedDepartment;
+
+  Future<void> pickProfilePicture() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.image,
+        allowMultiple: false,
+      );
+      
+      if (result != null && mounted) {
+        setState(() {
+          // For web: use bytes, for mobile: we can also use bytes
+          selectedImageBytes = result.files.single.bytes;
+          selectedImageName = result.files.single.name;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error picking image: $e"),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> uploadProfilePicture(String studentId) async {
+    if (selectedImageBytes == null) return;
+    
+    setState(() => isUploadingPicture = true);
+    
+    try {
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:8000/api/student/upload-profile-pic/'),
+      );
+      
+      request.fields['student_id'] = studentId;
+      
+      // Create multipart file from bytes (works on both web and mobile)
+      var multipartFile = http.MultipartFile.fromBytes(
+        'profile_picture',
+        selectedImageBytes!,
+        filename: selectedImageName ?? 'profile.jpg',
+      );
+      
+      request.files.add(multipartFile);
+      
+      final response = await request.send();
+      
+      if (!mounted) return;
+      
+      if (response.statusCode == 200) {
+        debugPrint("Profile picture uploaded successfully");
+      } else {
+        debugPrint("Failed to upload profile picture");
+      }
+    } catch (e) {
+      debugPrint("Error uploading profile picture: $e");
+    } finally {
+      if (mounted) {
+        setState(() => isUploadingPicture = false);
+      }
+    }
+  }
 
   Future<void> registerStudent() async {
+    // Validation
+    if (nameController.text.isEmpty ||
+        fatherNameController.text.isEmpty ||
+        rollNoController.text.isEmpty ||
+        selectedDepartment == null ||
+        selectedDepartment == 'Select Department' ||
+        passwordController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all fields'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
     if (passwordController.text != confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text("Passwords do not match"),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (passwordController.text.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Password must be at least 6 characters"),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -33,8 +148,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
     setState(() => isLoading = true);
 
-    final url =
-        Uri.parse('http://127.0.0.1:8000/api/student/register/');
+    final url = Uri.parse('http://127.0.0.1:8000/api/student/register/');
 
     try {
       final response = await http.post(
@@ -44,7 +158,8 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
           "name": nameController.text.trim(),
           "father_name": fatherNameController.text.trim(),
           "roll_no": rollNoController.text.trim(),
-          "department": departmentController.text.trim(),
+          "department": selectedDepartment,
+          "session": "2024-2028",
           "password": passwordController.text,
           "confirm_password": confirmPasswordController.text,
         }),
@@ -52,15 +167,21 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
       final data = jsonDecode(response.body);
 
-      if (!mounted) return; // ✅ GUARDED CONTEXT
-
-      setState(() => isLoading = false);
-
+      if (!mounted) return;
+      
       if (response.statusCode == 200 && data['success'] == true) {
+        // Upload profile picture if selected
+        if (selectedImageBytes != null) {
+          await uploadProfilePicture(rollNoController.text.trim());
+        }
+        
+        setState(() => isLoading = false);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Registration successful"),
+            content: Text("Registration successful! Please login."),
             backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
           ),
         );
 
@@ -71,140 +192,480 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
           ),
         );
       } else {
+        setState(() => isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(data['message'] ?? 'Registration failed'),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
     } catch (e) {
       if (!mounted) return;
-
       setState(() => isLoading = false);
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("Error: $e"),
           backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     }
   }
 
-  InputDecoration inputDecoration() {
-    return InputDecoration(
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding:
-          const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5FB),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
+          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A365D)),
           onPressed: () => Navigator.pop(context),
         ),
+        title: const Text(
+          "Registration",
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A365D),
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
-              child: Text(
-                "Registration",
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'Times New Roman',
+            // Header Illustration
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A365D), Color(0xFF2B6CB0)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.person_add_alt_1, size: 50, color: Colors.white),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Create Your Account",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "Join the Digital Complaint System",
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(179),
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 25),
+
+            // Form Card
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withAlpha(30),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Profile Picture Section
+                    Center(
+                      child: Column(
+                        children: [
+                          GestureDetector(
+                            onTap: pickProfilePicture,
+                            child: Stack(
+                              children: [
+                                Container(
+                                  width: 100,
+                                  height: 100,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: const Color(0xFFF7F9FC),
+                                    border: Border.all(
+                                      color: const Color(0xFF2B6CB0),
+                                      width: 2,
+                                    ),
+                                    image: selectedImageBytes != null
+                                        ? DecorationImage(
+                                            image: MemoryImage(selectedImageBytes!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : null,
+                                  ),
+                                  child: selectedImageBytes == null
+                                      ? const Icon(
+                                          Icons.camera_alt,
+                                          size: 40,
+                                          color: Color(0xFF2B6CB0),
+                                        )
+                                      : null,
+                                ),
+                                Positioned(
+                                  bottom: 0,
+                                  right: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2B6CB0),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.edit,
+                                      size: 16,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            selectedImageBytes == null 
+                                ? "Tap to add profile picture" 
+                                : "Profile picture selected",
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: selectedImageBytes == null 
+                                  ? Colors.grey.shade600 
+                                  : const Color(0xFF2B6CB0),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 24),
+                    
+                    const Divider(height: 1),
+                    const SizedBox(height: 20),
+                    
+                    // Name
+                    _buildInputField(
+                      label: "Full Name",
+                      hint: "Enter your full name",
+                      icon: Icons.person_outline,
+                      controller: nameController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Father Name
+                    _buildInputField(
+                      label: "Father Name",
+                      hint: "Enter your father's name",
+                      icon: Icons.family_restroom_outlined,
+                      controller: fatherNameController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Roll Number
+                    _buildInputField(
+                      label: "Roll Number",
+                      hint: "e.g., CS-06F/22-26",
+                      icon: Icons.numbers_outlined,
+                      controller: rollNoController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Department Dropdown
+                    const Text(
+                      "Department",
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1A365D),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF7F9FC),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        value: selectedDepartment,
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(
+                            Icons.business_outlined,
+                            color: Color(0xFF2B6CB0),
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                        ),
+                        items: departments.map((dept) {
+                          return DropdownMenuItem(
+                            value: dept,
+                            child: Text(dept),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedDepartment = value;
+                          });
+                        },
+                        hint: const Text("Select Department"),
+                        isExpanded: true,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Session Field
+                    _buildInputField(
+                      label: "Session",
+                      hint: "e.g., 2024-2028",
+                      icon: Icons.calendar_today_outlined,
+                      controller: TextEditingController(text: "2024-2028"),
+                      enabled: false,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Password
+                    _buildPasswordField(
+                      label: "Password",
+                      hint: "Create a password",
+                      controller: passwordController,
+                      obscureText: obscurePassword,
+                      onToggle: () {
+                        setState(() {
+                          obscurePassword = !obscurePassword;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Confirm Password
+                    _buildPasswordField(
+                      label: "Confirm Password",
+                      hint: "Re-enter your password",
+                      controller: confirmPasswordController,
+                      obscureText: obscureConfirmPassword,
+                      onToggle: () {
+                        setState(() {
+                          obscureConfirmPassword = !obscureConfirmPassword;
+                        });
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Register Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: ElevatedButton(
+                        onPressed: isLoading ? null : registerStudent,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2B6CB0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: isLoading
+                            ? const SizedBox(
+                                height: 24,
+                                width: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text(
+                                "Create Account",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 30),
 
-            const Text("Name"),
-            const SizedBox(height: 8),
-            TextField(controller: nameController, decoration: inputDecoration()),
             const SizedBox(height: 20),
 
-            const Text("Father Name"),
-            const SizedBox(height: 8),
-            TextField(
-                controller: fatherNameController,
-                decoration: inputDecoration()),
-            const SizedBox(height: 20),
-
-            const Text("Roll No"),
-            const SizedBox(height: 8),
-            TextField(
-                controller: rollNoController,
-                decoration: inputDecoration()),
-            const SizedBox(height: 20),
-
-            const Text("Department"),
-            const SizedBox(height: 8),
-            TextField(
-                controller: departmentController,
-                decoration: inputDecoration()),
-            const SizedBox(height: 20),
-
-            const Text("Password"),
-            const SizedBox(height: 8),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: inputDecoration(),
-            ),
-            const SizedBox(height: 20),
-
-            const Text("Confirm Password"),
-            const SizedBox(height: 8),
-            TextField(
-              controller: confirmPasswordController,
-              obscureText: true,
-              decoration: inputDecoration(),
-            ),
-            const SizedBox(height: 40),
-
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // Login Link
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  "Already have an account? ",
+                  style: TextStyle(color: Colors.grey.shade600),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const StudentLoginScreen(),
+                      ),
+                    );
+                  },
+                  child: const Text(
+                    "Login Here",
+                    style: TextStyle(
+                      color: Color(0xFF2B6CB0),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
-                onPressed: isLoading ? null : registerStudent,
-                child: isLoading
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        "Continue",
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-              ),
+              ],
             ),
             const SizedBox(height: 30),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildInputField({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required TextEditingController controller,
+    bool enabled = true,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A365D),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F9FC),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: TextField(
+            controller: controller,
+            enabled: enabled,
+            style: const TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              prefixIcon: Icon(icon, color: const Color(0xFF2B6CB0)),
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPasswordField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    required bool obscureText,
+    required VoidCallback onToggle,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF1A365D),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF7F9FC),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscureText,
+            style: const TextStyle(fontSize: 16),
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.lock_outline, color: Color(0xFF2B6CB0)),
+              suffixIcon: IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  color: Colors.grey,
+                ),
+                onPressed: onToggle,
+              ),
+              hintText: hint,
+              hintStyle: TextStyle(color: Colors.grey.shade400),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                vertical: 16,
+                horizontal: 16,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    fatherNameController.dispose();
+    rollNoController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    super.dispose();
   }
 }

@@ -1,20 +1,65 @@
 from django.urls import path
-from .views import student_login , student_register , student_dashboard , submit_complaint , complaint_detail , track_complaints ,complaint_list , solved_complaints, update_complaint_status, pending_complaints,new_complaint_count,mark_complaints_seen
-
+from .views import (
+    student_login, 
+    student_register, 
+    student_dashboard, 
+    submit_complaint, 
+    complaint_detail, 
+    complaint_detail_by_id,
+    track_complaints, 
+    complaint_list, 
+    solved_complaints, 
+    update_complaint_status, 
+    pending_complaints,
+    new_complaint_count, 
+    mark_complaints_seen,
+    reject_complaint, 
+    rejected_complaints,
+    admin_login, 
+    admin_register,
+    get_complaints_by_admin_type,
+    get_student_profile, 
+    upload_student_profile_pic,
+    get_admin_profile,
+    upload_admin_profile_pic,
+    get_admin_notifications,       # ✅ added
+    get_notification_count,        # ✅ added
+    mark_notification_read,        # ✅ added
+)
 
 urlpatterns = [
-    path('student/login/', student_login),
-    path('student/register/', student_register),
-    path('student/dashboard/<path:student_id>/', student_dashboard),
-    path('student/complaint/submit/', submit_complaint),
-    path('student/complaint/<path:student_id>/<int:complaint_id>/', complaint_detail),
-    path('student/complaint/track/<path:student_id>/', track_complaints),
-    path('admin/complaint/update-status/<int:pk>/', update_complaint_status),
-    path('admin/complaint/', complaint_list),
-    path('admin/complaint/solved/', solved_complaints),
-    path('admin/complaint/pending/', pending_complaints),
-    path('admin/new-count/', new_complaint_count),
-    path('admin/mark-seen/', mark_complaints_seen),
+    # Student endpoints
+    path('student/login/', student_login, name='student_login'),
+    path('student/register/', student_register, name='student_register'),
+    path('student/dashboard/<path:student_id>/', student_dashboard, name='student_dashboard'),
+    path('student/complaint/submit/', submit_complaint, name='submit_complaint'),
+    path('student/complaint/<path:student_id>/<int:complaint_id>/', complaint_detail, name='complaint_detail'),
+    path('student/complaint/track/<path:student_id>/', track_complaints, name='track_complaints'),
+    path('student/profile/<str:student_id>/', get_student_profile, name='get_student_profile'),
+    path('student/upload-profile-pic/', upload_student_profile_pic, name='upload_student_profile_pic'),
+    
+    # Admin auth endpoints
+    path('admin/login/', admin_login, name='admin_login'),
+    path('admin/register/', admin_register, name='admin_register'),
+    path('admin/profile/<str:username>/', get_admin_profile, name='get_admin_profile'),
+    path('admin/upload-profile-pic/', upload_admin_profile_pic, name='upload_admin_profile_pic'),
+    
+    # Admin complaint endpoints
+    path('admin/complaint/', complaint_list, name='complaint_list'),
+    path('admin/complaint/update-status/<int:pk>/', update_complaint_status, name='update_complaint_status'),
+    path('admin/complaint/solved/', solved_complaints, name='solved_complaints'),
+    path('admin/complaint/pending/', pending_complaints, name='pending_complaints'),
+    path('admin/complaint/rejected/', rejected_complaints, name='rejected_complaints'),
+    path('admin/complaint/reject/<int:pk>/', reject_complaint, name='reject_complaint'),
+    path('admin/new-count/', new_complaint_count, name='new_complaint_count'),
+    path('admin/mark-seen/', mark_complaints_seen, name='mark_complaints_seen'),
+    path('admin/complaints/<str:admin_type>/', get_complaints_by_admin_type, name='get_complaints_by_admin_type'),
 
-
+    # Admin notification endpoints
+    path('admin/notifications/', get_admin_notifications, name='get_admin_notifications'),
+    path('admin/notifications/count/', get_notification_count, name='get_notification_count'),
+    path('admin/notifications/mark-read/<int:notification_id>/', mark_notification_read, name='mark_notification_read'),
+    
+    # Direct complaint access
+    path('complaint/<int:complaint_id>/', complaint_detail_by_id, name='complaint_detail_by_id'),
 ]

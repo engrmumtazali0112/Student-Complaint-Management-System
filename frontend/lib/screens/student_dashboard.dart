@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'submit_complain.dart';
+import 'submit_complaint.dart';
+import 'track_complains.dart';
+import 'student_rejected_complaints.dart';
+import 'student_login.dart';
 
 class StudentDashboard extends StatefulWidget {
   final String studentId;
@@ -13,15 +16,10 @@ class StudentDashboard extends StatefulWidget {
 }
 
 class _StudentDashboardState extends State<StudentDashboard> {
-  bool isLoading = true;
-
-  String studentName = '';
-  String studentId = '';
-  int total = 0;
-  int pending = 0;
-  int resolved = 0;
-
+  Map<String, dynamic>? studentData;
+  Map<String, dynamic>? stats;
   List notifications = [];
+  bool isLoading = true;
 
   @override
   void initState() {
@@ -30,254 +28,385 @@ class _StudentDashboardState extends State<StudentDashboard> {
   }
 
   Future<void> fetchDashboard() async {
-    final url = Uri.parse(
-      'http://127.0.0.1:8000/api/student/dashboard/${widget.studentId}/',
-    );
-
+    setState(() => isLoading = true);
     try {
-      final response = await http.get(url);
-      final data = jsonDecode(response.body);
-
-
-      if (!mounted) return;
-
-      if (response.statusCode == 200 && data['success'] == true) {
+      final response = await http.get(
+        Uri.parse(
+            'http://127.0.0.1:8000/api/student/dashboard/${widget.studentId}/'),
+      );
+      if (response.statusCode == 200 && mounted) {
+        final data = jsonDecode(response.body);
         setState(() {
-          studentName = data['student']['name'];
-          studentId = data['student']['student_id'];
-
-          total = data['stats']['total'];
-          pending = data['stats']['pending'];
-          resolved = data['stats']['resolved'];
-
-          notifications = data['notifications'];
+          studentData = data['student'];
+          stats = data['stats'];
+          notifications = data['notifications'] ?? [];
           isLoading = false;
         });
       } else {
-        setState(() => isLoading = false);
-        _showError(data['message'] ?? 'Failed to load dashboard');
+        if (mounted) setState(() => isLoading = false);
       }
-    } catch (e) {
-      if (!mounted) return;
-      setState(() => isLoading = false);
-      _showError('Server connection error');
+    } catch (_) {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
-  void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+  void _logout() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const StudentLoginScreen()),
+      (route) => false,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5FB),
+      backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: const Color(0xFF1A365D),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
-        ),
-        centerTitle: true,
-        title: const Text(
-          "Dashboard",
-          style: TextStyle(
-            fontSize: 24,
-            color: Colors.black,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
+        automaticallyImplyLeading: false,
+        title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
-            // Student Name + ID
-            Text(
-              studentName,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              "Student ID: $studentId",
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.black54,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Notifications
             const Text(
-              "Notifications",
+              'Student Dashboard',
               style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
-              ),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white),
             ),
-            const SizedBox(height: 10),
+            if (studentData != null)
+              Text(
+                studentData!['student_id'] ?? '',
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, color: Colors.white),
+            onPressed: _logout,
+            tooltip: 'Logout',
+          ),
+        ],
+      ),
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: fetchDashboard,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.all(16),
+                children: [
+                  // Welcome Card
+                  _buildWelcomeCard(),
+                  const SizedBox(height: 20),
 
-            notifications.isEmpty
-                ? const Text("No notifications yet")
-                : Column(
-                    children: notifications.map((n) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 10),
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE8EFF6),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.notifications_none),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Notification",
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  Text(
-                                    n['message'] ?? "no message",
-                                    style: const TextStyle(
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            )
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                  // Stats Row
+                  _buildStatsRow(),
+                  const SizedBox(height: 24),
+
+                  // Quick Actions
+                  const Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A365D)),
                   ),
+                  const SizedBox(height: 12),
+                  _buildActionGrid(),
+                  const SizedBox(height: 24),
 
-            const SizedBox(height: 25),
-
-            // Complaint Status
-            const Text(
-              "Complaint Status",
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: Colors.black,
+                  // Notifications
+                  const Text(
+                    'Recent Notifications',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1A365D)),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildNotifications(),
+                ],
               ),
             ),
-            const SizedBox(height: 15),
+    );
+  }
 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildWelcomeCard() {
+    final name = studentData?['name'] ?? 'Student';
+    final dept = studentData?['department'] ?? '';
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF1A365D), Color(0xFF2B6CB0)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF1A365D).withAlpha(60),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withAlpha(30),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.school_rounded,
+                color: Colors.white, size: 32),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _statusBox("Total", total.toString()),
-                _statusBox("Pending", pending.toString()),
+                Text(
+                  'Welcome, $name',
+                  style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  dept,
+                  style: TextStyle(
+                      fontSize: 13, color: Colors.white.withAlpha(200)),
+                ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 15),
+  Widget _buildStatsRow() {
+    final total = stats?['total'] ?? 0;
+    final pending = stats?['pending'] ?? 0;
+    final resolved = stats?['resolved'] ?? 0;
 
-            _fullStatusBox("Resolved", resolved.toString()),
+    return Row(
+      children: [
+        _statCard('Total', total.toString(), Icons.list_alt_rounded,
+            const Color(0xFF2B6CB0)),
+        const SizedBox(width: 12),
+        _statCard('Pending', pending.toString(), Icons.hourglass_empty_rounded,
+            const Color(0xFFF59E0B)),
+        const SizedBox(width: 12),
+        _statCard('Resolved', resolved.toString(),
+            Icons.check_circle_outline_rounded, const Color(0xFF10B981)),
+      ],
+    );
+  }
 
-            const SizedBox(height: 35),
-
-            Center(
-              child: ElevatedButton.icon(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D6EFD),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 40, vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.add, color: Colors.white),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => SubmitComplaintScreen()),
-                  );
-                },
-                label: const Text(
-                  "New Complaint",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
+  Widget _statCard(
+      String label, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withAlpha(15),
+                blurRadius: 8,
+                offset: const Offset(0, 2)),
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: color, size: 24),
+            const SizedBox(height: 8),
+            Text(value,
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    color: color)),
+            const SizedBox(height: 4),
+            Text(label,
+                style:
+                    TextStyle(fontSize: 11, color: Colors.grey.shade500)),
           ],
         ),
       ),
     );
   }
 
-  Widget _statusBox(String title, String number) {
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Column(
-        children: [
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(number,
-              style:
-                  const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        ],
-      ),
+  Widget _buildActionGrid() {
+    final actions = [
+      {
+        'label': 'Submit Complaint',
+        'icon': Icons.add_circle_outline_rounded,
+        'color': const Color(0xFF2B6CB0),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    SubmitComplaintScreen(studentId: widget.studentId),
+              ),
+            ),
+      },
+      {
+        'label': 'Track Complaints',
+        'icon': Icons.track_changes_rounded,
+        'color': const Color(0xFF10B981),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) =>
+                    TrackComplaintsScreen(studentId: widget.studentId),
+              ),
+            ),
+      },
+      {
+        'label': 'Rejected',
+        'icon': Icons.cancel_outlined,
+        'color': const Color(0xFFDC2626),
+        'onTap': () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => StudentRejectedComplaintsScreen(
+                    studentId: widget.studentId),
+              ),
+            ),
+      },
+    ];
+
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 3,
+      crossAxisSpacing: 12,
+      mainAxisSpacing: 12,
+      childAspectRatio: 0.9,
+      children: actions.map((a) {
+        final color = a['color'] as Color;
+        return GestureDetector(
+          onTap: a['onTap'] as VoidCallback,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.grey.withAlpha(15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2)),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withAlpha(26),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(a['icon'] as IconData, color: color, size: 26),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  a['label'] as String,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1A365D)),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
-  Widget _fullStatusBox(String title, String number) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.black12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style:
-                  const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-          Text(number,
-              style:
-                  const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-        ],
-      ),
+  Widget _buildNotifications() {
+    if (notifications.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Center(
+          child: Text(
+            'No notifications yet',
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: notifications.map<Widget>((n) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                  color: Colors.grey.withAlpha(10),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2)),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2B6CB0).withAlpha(26),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.notifications_outlined,
+                    color: Color(0xFF2B6CB0), size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      n['message'] ?? '',
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFF1A365D),
+                          fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      n['date'] ?? '',
+                      style: TextStyle(
+                          fontSize: 11, color: Colors.grey.shade400),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }
