@@ -40,20 +40,32 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   Future<void> fetchStudentProfile() async {
     setState(() => isLoading = true);
     try {
-      final response = await http.get(
-        Uri.parse("http://localhost:8000/api/student/profile/${widget.studentUsername}/"),
-      );
-
+      final url = Uri.parse("http://localhost:8000/api/student/profile/${widget.studentUsername}/");
+      debugPrint("Fetching profile from: $url");
+      
+      final response = await http.get(url);
+      debugPrint("Profile response status: ${response.statusCode}");
+      debugPrint("Profile response body: ${response.body}");
+      
       if (response.statusCode == 200 && mounted) {
         final data = jsonDecode(response.body);
-        setState(() {
-          studentData = data['data'];
-          isLoading = false;
-        });
+        if (data['success'] == true) {
+          setState(() {
+            studentData = data['data'];
+            isLoading = false;
+          });
+        } else {
+          setState(() {
+            isLoading = false;
+          });
+          debugPrint("Error: ${data['message']}");
+        }
       } else {
-        if (mounted) setState(() => isLoading = false);
+        setState(() => isLoading = false);
+        debugPrint("Failed to fetch profile. Status: ${response.statusCode}");
       }
     } catch (e) {
+      debugPrint("Error fetching profile: $e");
       if (mounted) setState(() => isLoading = false);
     }
   }
@@ -83,7 +95,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: false,
-        withData: true, // Important for web
+        withData: true,
       );
 
       if (result != null && mounted) {
@@ -98,7 +110,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
         );
         request.fields['student_id'] = widget.studentUsername;
 
-        // Use fromBytes for web compatibility
         var multipartFile = http.MultipartFile.fromBytes(
           'profile_picture',
           _selectedImageBytes!,
@@ -144,12 +155,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Use actual data from API or fallback to defaults
     final profileData = studentData ?? {
       'name': widget.studentName,
       'student_id': widget.studentUsername,
-      'department': 'N/A',
-      'session': 'N/A',
-      'email': '${widget.studentUsername}@student.com',
+      'father_name': 'Not provided',
+      'department': 'Not assigned',
+      'session': 'Not set',
+      'email': 'Not provided',
       'phone': 'Not provided',
       'address': 'Not provided',
       'created_at': '2026',
@@ -162,36 +175,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A365D)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Student Profile',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A365D),
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Color(0xFFDC2626)),
-            onPressed: () {
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const StudentLoginScreen()),
-                (route) => false,
-              );
-            },
-            tooltip: 'Logout',
-          ),
-        ],
-      ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -199,7 +182,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Profile Header ──────────────────────────────
+                  // Profile Header
                   GestureDetector(
                     onTap: pickAndUploadImage,
                     child: Container(
@@ -217,7 +200,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         children: [
                           Stack(
                             children: [
-                              // Profile picture
                               Container(
                                 width: 100,
                                 height: 100,
@@ -230,9 +212,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                             _getImageUrl(profileData['profile_picture']),
                                           ),
                                           fit: BoxFit.cover,
-                                          onError: (exception, stackTrace) {
-                                            debugPrint('Image load error: $exception');
-                                          },
                                         )
                                       : null,
                                 ),
@@ -328,7 +307,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── Stats Row ────────────────────────────────────
+                  // Stats Row
                   Row(
                     children: [
                       _buildStatCard(
@@ -363,7 +342,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
                   const SizedBox(height: 20),
 
-                  // ── Profile Details Card ─────────────────────────
+                  // Profile Details Card
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -388,7 +367,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Father Name',
-                            value: profileData['father_name'] ?? 'N/A',
+                            value: profileData['father_name'] ?? 'Not provided',
                             icon: Icons.family_restroom_outlined,
                           ),
                           const Divider(height: 24),
@@ -400,37 +379,31 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Department',
-                            value: profileData['department'] ?? 'N/A',
+                            value: profileData['department'] ?? 'Not assigned',
                             icon: Icons.business_outlined,
                           ),
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Session',
-                            value: profileData['session'] ?? 'N/A',
+                            value: profileData['session'] ?? 'Not set',
                             icon: Icons.calendar_today_outlined,
                           ),
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Phone',
-                            value: profileData['phone']?.isNotEmpty == true
-                                ? profileData['phone']
-                                : 'Not provided',
+                            value: profileData['phone'] ?? 'Not provided',
                             icon: Icons.phone_outlined,
                           ),
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Email',
-                            value: profileData['email']?.isNotEmpty == true
-                                ? profileData['email']
-                                : 'Not provided',
+                            value: profileData['email'] ?? 'Not provided',
                             icon: Icons.email_outlined,
                           ),
                           const Divider(height: 24),
                           _buildProfileRow(
                             label: 'Address',
-                            value: profileData['address']?.isNotEmpty == true
-                                ? profileData['address']
-                                : 'Not provided',
+                            value: profileData['address'] ?? 'Not provided',
                             icon: Icons.location_on_outlined,
                           ),
                           const Divider(height: 24),
@@ -446,7 +419,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
                   const SizedBox(height: 28),
 
-                  // ── Notifications Section ────────────────────────
+                  // Notifications Section
                   Row(
                     children: [
                       const Icon(Icons.notifications_outlined,
