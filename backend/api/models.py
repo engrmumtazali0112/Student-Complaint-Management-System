@@ -44,18 +44,19 @@ class AdminProfile(models.Model):
 # ─────────────────────────────────────────────
 # Student model
 # ─────────────────────────────────────────────
+
 class Student(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='student')
     reg_no_validator = RegexValidator(
         regex=r'^[A-Z]{2}-\d{2}[A-Z]/\d{2}-\d{2}$',
         message="Format must be like CS-06F/22-26"
     )
-    student_id  = models.CharField(max_length=20, unique=True, validators=[reg_no_validator])
-    father_name = models.CharField(max_length=100)
-    name        = models.CharField(max_length=100)
-    department  = models.CharField(max_length=100)
-    session     = models.CharField(max_length=50, null=True, blank=True)
-    created_at  = models.DateTimeField(auto_now_add=True)
+    student_id = models.CharField(max_length=20, unique=True, validators=[reg_no_validator])
+    father_name = models.CharField(max_length=100, blank=False, null=False)  # Make sure it's required
+    name = models.CharField(max_length=100)
+    department = models.CharField(max_length=100)
+    session = models.CharField(max_length=50, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
     profile_picture = models.ImageField(upload_to='profile_pics/', blank=True, null=True)
     phone = models.CharField(max_length=15, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
