@@ -14,8 +14,8 @@ class DigitalComplaintSystem extends StatelessWidget {
       title: 'Digital Complaint System',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        fontFamily: 'Roboto',
         useMaterial3: true,
+        // fontFamily: 'Roboto' removed — prevents blank screen from CDN font fetch failure
       ),
       home: const WelcomeScreen(),
     );
@@ -40,7 +40,7 @@ class WelcomeScreen extends StatelessWidget {
               height: size.height * 0.3,
               width: double.infinity,
               child: Image.asset(
-                'assets/images/clg pic.jpg', // replace with your image path
+                'assets/images/clg pic.jpg',
                 fit: BoxFit.cover,
               ),
             ),
@@ -108,7 +108,8 @@ class WelcomeScreen extends StatelessWidget {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const RoleSelectionScreen()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
@@ -162,23 +163,29 @@ class FeatureCard extends StatelessWidget {
           color: Colors.grey.shade100,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: iconColor.withAlpha(26),
-            child: Icon(icon, color: iconColor),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
+        // FIX: Material wrapper required so ListTile ink splashes
+        // render correctly over the Container's background color.
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: iconColor.withAlpha(26),
+              child: Icon(icon, color: iconColor),
             ),
-          ),
-          subtitle: Text(
-            subtitle,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.black54,
+            title: Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+            subtitle: Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+              ),
             ),
           ),
         ),
