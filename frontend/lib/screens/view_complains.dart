@@ -101,6 +101,180 @@ class _ViewComplaintDetailsScreenState
     }
   }
 
+  // ✅ Attachment section widget
+  Widget _buildAttachmentSection(Map<String, dynamic> complaintData) {
+    final attachment = complaintData['attachment'];
+    final attachmentName = complaintData['attachment_name'];
+    
+    if (attachment == null || attachment.toString().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
+    String fileUrl = attachment.toString();
+    if (!fileUrl.startsWith('http')) {
+      fileUrl = 'http://localhost:8000$fileUrl';
+    }
+    
+    final String ext = attachmentName?.toLowerCase() ?? '';
+    final bool isImage = ext.contains('.jpg') || ext.contains('.jpeg') || 
+                         ext.contains('.png') || ext.contains('.gif') || 
+                         ext.contains('.webp') || ext.contains('.bmp');
+    final bool isPdf = ext.contains('.pdf');
+    final bool isDoc = ext.contains('.doc') || ext.contains('.docx');
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withAlpha(10),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.attach_file, size: 18, color: Colors.grey.shade600),
+                const SizedBox(width: 10),
+                Text(
+                  "Attached Document",
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F9FA),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade200),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        isImage ? Icons.image_outlined : 
+                        (isPdf ? Icons.picture_as_pdf : 
+                        (isDoc ? Icons.description : Icons.insert_drive_file)),
+                        color: const Color(0xFF2B6CB0),
+                        size: 24,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          attachmentName ?? 'Attachment',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1A365D),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.open_in_new, size: 18, color: Color(0xFF2B6CB0)),
+                        onPressed: () {
+                          // Open in browser - you can add url_launcher package for better experience
+                          // For now, just show a snackbar
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Tap to download or view file'),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        tooltip: 'Open file',
+                      ),
+                    ],
+                  ),
+                  if (isImage) ...[
+                    const SizedBox(height: 12),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.network(
+                        fileUrl,
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 200,
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: CircularProgressIndicator(),
+                            ),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 200,
+                            color: Colors.grey.shade200,
+                            child: const Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.broken_image, size: 48, color: Colors.grey),
+                                  SizedBox(height: 8),
+                                  Text('Preview not available'),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  if (isPdf) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 150,
+                      color: Colors.grey.shade100,
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.picture_as_pdf, size: 50, color: Colors.red.shade400),
+                            const SizedBox(height: 8),
+                            Text(
+                              'PDF Document',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Tap the open icon to view',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -378,6 +552,11 @@ class _ViewComplaintDetailsScreenState
                           ),
                         ),
                       ),
+
+                      const SizedBox(height: 16),
+
+                      // ✅ Attachment Section (NEW)
+                      _buildAttachmentSection(complaintData!),
 
                       const SizedBox(height: 24),
 
