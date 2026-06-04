@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -19,12 +18,15 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
   final TextEditingController rollNoController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
+  final TextEditingController addressController = TextEditingController();
+  final TextEditingController dobController = TextEditingController();
 
   bool isLoading = false;
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
   
-  // Profile picture - web compatible
   Uint8List? selectedImageBytes;
   String? selectedImageName;
   bool isUploadingPicture = false;
@@ -48,7 +50,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
       
       if (result != null && mounted) {
         setState(() {
-          // For web: use bytes, for mobile: we can also use bytes
           selectedImageBytes = result.files.single.bytes;
           selectedImageName = result.files.single.name;
         });
@@ -79,7 +80,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
       
       request.fields['student_id'] = studentId;
       
-      // Create multipart file from bytes (works on both web and mobile)
       var multipartFile = http.MultipartFile.fromBytes(
         'profile_picture',
         selectedImageBytes!,
@@ -88,14 +88,15 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
       
       request.files.add(multipartFile);
       
-      final response = await request.send();
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
       
       if (!mounted) return;
       
       if (response.statusCode == 200) {
         debugPrint("Profile picture uploaded successfully");
       } else {
-        debugPrint("Failed to upload profile picture");
+        debugPrint("Failed to upload profile picture: ${response.body}");
       }
     } catch (e) {
       debugPrint("Error uploading profile picture: $e");
@@ -104,6 +105,12 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         setState(() => isUploadingPicture = false);
       }
     }
+  }
+
+  // Validate roll number format
+  bool isValidRollNumber(String rollNo) {
+    final regex = RegExp(r'^[A-Z]{2}-\d{2}[A-Z]/\d{2}-\d{2}$');
+    return regex.hasMatch(rollNo.toUpperCase());
   }
 
   Future<void> registerStudent() async {
@@ -116,9 +123,22 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill all fields'),
+          content: Text('Please fill all required fields'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // Validate roll number format
+    if (!isValidRollNumber(rollNoController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Invalid roll number format. Use format: CS-06F/22-26'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          duration: Duration(seconds: 4),
         ),
       );
       return;
@@ -148,69 +168,139 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
     setState(() => isLoading = true);
 
-    final url = Uri.parse('http://127.0.0.1:8000/api/student/register/');
+    // Use localhost instead of 127.0.0.1 for better compatibility
+    final url = Uri.parse('http://localhost:8000/api/student/register/');
 
     try {
+      final requestBody = {
+        "name": nameController.text.trim(),
+        "father_name": fatherNameController.text.trim(),
+        "roll_no": rollNoController.text.trim().toUpperCase(),
+        "department": selectedDepartment,
+        "session": "2024-2028",
+        "password": passwordController.text,
+        "confirm_password": confirmPasswordController.text,
+        "email": emailController.text.trim(),
+        "phone": phoneController.text.trim(),
+        "address": addressController.text.trim(),
+        "date_of_birth": dobController.text.trim().isEmpty ? null : dobController.text.trim(),
+      };
+
+      debugPrint("Sending request to: $url");
+      debugPrint("Request body: ${jsonEncode(requestBody)}");
+
       final response = await http.post(
         url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          "name": nameController.text.trim(),
-          "father_name": fatherNameController.text.trim(),
-          "roll_no": rollNoController.text.trim(),
-          "department": selectedDepartment,
-          "session": "2024-2028",
-          "password": passwordController.text,
-          "confirm_password": confirmPasswordController.text,
-        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode(requestBody),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Connection timeout. Please check your internet connection.');
+        },
       );
 
-      final data = jsonDecode(response.body);
+      debugPrint("Response status: ${response.statusCode}");
+      debugPrint("Response body: ${response.body}");
 
       if (!mounted) return;
-      
-      if (response.statusCode == 200 && data['success'] == true) {
-        // Upload profile picture if selected
-        if (selectedImageBytes != null) {
-          await uploadProfilePicture(rollNoController.text.trim());
+
+      // Check if response is JSON
+      if (response.body.trim().startsWith('{')) {
+        final data = jsonDecode(response.body);
+        
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (data['success'] == true) {
+            // Upload profile picture if selected
+            if (selectedImageBytes != null) {
+              await uploadProfilePicture(rollNoController.text.trim().toUpperCase());
+            }
+            
+            if (!mounted) return;
+            
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Registration successful! Please login."),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+
+            // Clear form
+            nameController.clear();
+            fatherNameController.clear();
+            rollNoController.clear();
+            passwordController.clear();
+            confirmPasswordController.clear();
+            emailController.clear();
+            phoneController.clear();
+            addressController.clear();
+            dobController.clear();
+            setState(() {
+              selectedDepartment = null;
+              selectedImageBytes = null;
+            });
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const StudentLoginScreen(),
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(data['message'] ?? 'Registration failed'),
+                backgroundColor: Colors.red,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(data['message'] ?? 'Registration failed. Please try again.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
-        
-        setState(() => isLoading = false);
-        
+      } else {
+        // Response is not JSON - likely an HTML error page
+        debugPrint("Non-JSON response received: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text("Registration successful! Please login."),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const StudentLoginScreen(),
-          ),
-        );
-      } else {
-        setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Registration failed'),
+            content: Text('Server error. Please check if backend is running correctly.'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 4),
           ),
         );
       }
     } catch (e) {
+      debugPrint("Registration error: $e");
       if (!mounted) return;
-      setState(() => isLoading = false);
+      
+      String errorMessage = "Connection error. Please make sure the server is running.";
+      if (e.toString().contains('Connection refused')) {
+        errorMessage = "Cannot connect to server. Please ensure backend is running on port 8000.";
+      } else if (e.toString().contains('timeout')) {
+        errorMessage = "Connection timeout. Please check your network.";
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Error: $e"),
+          content: Text(errorMessage),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 4),
         ),
       );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
     }
   }
 
@@ -239,7 +329,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         child: Column(
           children: [
-            // Header Illustration
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
@@ -276,7 +365,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
             const SizedBox(height: 25),
 
-            // Form Card
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -294,7 +382,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Profile Picture Section
                     Center(
                       child: Column(
                         children: [
@@ -368,40 +455,35 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     ),
                     
                     const SizedBox(height: 24),
-                    
                     const Divider(height: 1),
                     const SizedBox(height: 20),
                     
-                    // Name
                     _buildInputField(
-                      label: "Full Name",
+                      label: "Full Name *",
                       hint: "Enter your full name",
                       icon: Icons.person_outline,
                       controller: nameController,
                     ),
                     const SizedBox(height: 16),
 
-                    // Father Name
                     _buildInputField(
-                      label: "Father Name",
+                      label: "Father Name *",
                       hint: "Enter your father's name",
                       icon: Icons.family_restroom_outlined,
                       controller: fatherNameController,
                     ),
                     const SizedBox(height: 16),
 
-                    // Roll Number
                     _buildInputField(
-                      label: "Roll Number",
+                      label: "Roll Number *",
                       hint: "e.g., CS-06F/22-26",
                       icon: Icons.numbers_outlined,
                       controller: rollNoController,
                     ),
                     const SizedBox(height: 16),
 
-                    // Department Dropdown
                     const Text(
-                      "Department",
+                      "Department *",
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -447,7 +529,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Session Field
                     _buildInputField(
                       label: "Session",
                       hint: "e.g., 2024-2028",
@@ -457,10 +538,42 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Password
+                    _buildInputField(
+                      label: "Email",
+                      hint: "your@email.com",
+                      icon: Icons.email_outlined,
+                      controller: emailController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildInputField(
+                      label: "Phone",
+                      hint: "0300-1234567",
+                      icon: Icons.phone_outlined,
+                      controller: phoneController,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildInputField(
+                      label: "Address",
+                      hint: "Your complete address",
+                      icon: Icons.location_on_outlined,
+                      controller: addressController,
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 16),
+
+                    _buildInputField(
+                      label: "Date of Birth",
+                      hint: "YYYY-MM-DD",
+                      icon: Icons.cake_outlined,
+                      controller: dobController,
+                    ),
+                    const SizedBox(height: 16),
+
                     _buildPasswordField(
-                      label: "Password",
-                      hint: "Create a password",
+                      label: "Password *",
+                      hint: "Create a password (min 6 characters)",
                       controller: passwordController,
                       obscureText: obscurePassword,
                       onToggle: () {
@@ -471,9 +584,8 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Confirm Password
                     _buildPasswordField(
-                      label: "Confirm Password",
+                      label: "Confirm Password *",
                       hint: "Re-enter your password",
                       controller: confirmPasswordController,
                       obscureText: obscureConfirmPassword,
@@ -486,7 +598,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
                     const SizedBox(height: 24),
 
-                    // Register Button
                     SizedBox(
                       width: double.infinity,
                       height: 55,
@@ -524,7 +635,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
             const SizedBox(height: 20),
 
-            // Login Link
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -564,6 +674,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     required IconData icon,
     required TextEditingController controller,
     bool enabled = true,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -585,6 +696,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
           child: TextField(
             controller: controller,
             enabled: enabled,
+            maxLines: maxLines,
             style: const TextStyle(fontSize: 16),
             decoration: InputDecoration(
               prefixIcon: Icon(icon, color: const Color(0xFF2B6CB0)),
@@ -666,6 +778,10 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
     rollNoController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    emailController.dispose();
+    phoneController.dispose();
+    addressController.dispose();
+    dobController.dispose();
     super.dispose();
   }
 }
