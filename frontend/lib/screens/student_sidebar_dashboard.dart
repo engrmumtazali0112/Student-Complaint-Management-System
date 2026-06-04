@@ -18,43 +18,46 @@ class StudentSidebarDashboard extends StatefulWidget {
   });
 
   @override
-  State<StudentSidebarDashboard> createState() => _StudentSidebarDashboardState();
+  State<StudentSidebarDashboard> createState() =>
+      _StudentSidebarDashboardState();
 }
 
 class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
   int selectedIndex = 0;
-  int totalCount = 0;
-  int pendingCount = 0;
+  int totalCount    = 0;
+  int pendingCount  = 0;
   int resolvedCount = 0;
   int rejectedCount = 0;
 
   final List<Map<String, dynamic>> menuItems = [
-    {'title': 'Profile', 'icon': Icons.person_outline, 'filter': 'profile'},
-    {'title': 'Submit Complaint', 'icon': Icons.add_circle_outline, 'filter': 'submit'},
-    {'title': 'Track Complaints', 'icon': Icons.track_changes, 'filter': 'track'},
-    {'title': 'Rejected Complaints', 'icon': Icons.cancel_outlined, 'filter': 'rejected'},
-    {'title': 'Logout', 'icon': Icons.logout, 'filter': 'logout'},
+    {'title': 'Profile',             'icon': Icons.person_outline,    'filter': 'profile'},
+    {'title': 'Submit Complaint',    'icon': Icons.add_circle_outline,'filter': 'submit'},
+    {'title': 'Track Complaints',    'icon': Icons.track_changes,     'filter': 'track'},
+    {'title': 'Rejected Complaints', 'icon': Icons.cancel_outlined,   'filter': 'rejected'},
+    {'title': 'Logout',              'icon': Icons.logout,            'filter': 'logout'},
   ];
 
   @override
   void initState() {
     super.initState();
     fetchStats();
+    fetchRejectedCount();
   }
 
   Future<void> fetchStats() async {
     try {
       final response = await http.get(
-        Uri.parse("http://localhost:8000/api/student/dashboard/${widget.studentId}/"),
+        Uri.parse(
+            "http://localhost:8000/api/student/dashboard/${widget.studentId}/"),
       );
 
       if (response.statusCode == 200 && mounted) {
-        final data = jsonDecode(response.body);
+        final data  = jsonDecode(response.body);
         final stats = data['stats'];
-        
+
         setState(() {
-          totalCount = stats['total'] ?? 0;
-          pendingCount = stats['pending'] ?? 0;
+          totalCount    = stats['total']    ?? 0;
+          pendingCount  = stats['pending']  ?? 0;
           resolvedCount = stats['resolved'] ?? 0;
         });
       }
@@ -66,15 +69,17 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
   Future<void> fetchRejectedCount() async {
     try {
       final response = await http.get(
-        Uri.parse("http://localhost:8000/api/student/complaint/track/${widget.studentId}/"),
+        Uri.parse(
+            "http://localhost:8000/api/student/complaint/track/${widget.studentId}/"),
       );
-      
+
       if (response.statusCode == 200 && mounted) {
-        final data = jsonDecode(response.body);
+        final data       = jsonDecode(response.body);
         final complaints = data['data'] as List;
-        
+
         setState(() {
-          rejectedCount = complaints.where((c) => c['status'] == 'rejected').length;
+          rejectedCount =
+              complaints.where((c) => c['status'] == 'rejected').length;
         });
       }
     } catch (e) {
@@ -88,7 +93,7 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
       backgroundColor: const Color(0xFFF0F4F8),
       body: Row(
         children: [
-          // Sidebar
+          // ── Sidebar ──────────────────────────────────────────────
           Container(
             width: 280,
             decoration: BoxDecoration(
@@ -101,7 +106,7 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
                 ),
               ],
               borderRadius: const BorderRadius.only(
-                topRight: Radius.circular(20),
+                topRight:    Radius.circular(20),
                 bottomRight: Radius.circular(20),
               ),
             ),
@@ -156,62 +161,77 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
                     ],
                   ),
                 ),
-                
+
                 // Stats Cards in Sidebar
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _sidebarStat('Total', totalCount.toString(), Icons.format_list_numbered, const Color(0xFF2B6CB0)),
+                      _sidebarStat('Total',    totalCount.toString(),    Icons.format_list_numbered, const Color(0xFF2B6CB0)),
                       const SizedBox(height: 8),
-                      _sidebarStat('Pending', pendingCount.toString(), Icons.pending_actions, const Color(0xFFF59E0B)),
+                      _sidebarStat('Pending',  pendingCount.toString(),  Icons.pending_actions,      const Color(0xFFF59E0B)),
                       const SizedBox(height: 8),
-                      _sidebarStat('Resolved', resolvedCount.toString(), Icons.check_circle, const Color(0xFF10B981)),
+                      _sidebarStat('Resolved', resolvedCount.toString(), Icons.check_circle,          const Color(0xFF10B981)),
                       const SizedBox(height: 8),
-                      _sidebarStat('Rejected', rejectedCount.toString(), Icons.cancel, const Color(0xFFDC2626)),
+                      _sidebarStat('Rejected', rejectedCount.toString(), Icons.cancel,                const Color(0xFFDC2626)),
                     ],
                   ),
                 ),
-                
+
                 const Divider(),
-                
+
                 // Menu Items
+                // FIX: Each ListTile is wrapped in Material(color: transparent)
+                // so that tileColor and ink splashes render correctly over the
+                // parent Container's white background.
                 Expanded(
                   child: ListView.builder(
                     itemCount: menuItems.length,
                     padding: const EdgeInsets.symmetric(vertical: 8),
                     itemBuilder: (context, index) {
-                      final item = menuItems[index];
+                      final item       = menuItems[index];
                       final isSelected = selectedIndex == index;
-                      return ListTile(
-                        leading: Icon(
-                          item['icon'] as IconData,
-                          color: isSelected ? const Color(0xFF2B6CB0) : Colors.grey.shade500,
-                          size: 22,
-                        ),
-                        title: Text(
-                          item['title'] as String,
-                          style: TextStyle(
-                            color: isSelected ? const Color(0xFF2B6CB0) : Colors.grey.shade700,
-                            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(
+                            item['icon'] as IconData,
+                            color: isSelected
+                                ? const Color(0xFF2B6CB0)
+                                : Colors.grey.shade500,
+                            size: 22,
                           ),
+                          title: Text(
+                            item['title'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? const Color(0xFF2B6CB0)
+                                  : Colors.grey.shade700,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          tileColor: isSelected
+                              ? const Color(0xFF2B6CB0).withAlpha(26)
+                              : null,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          onTap: () {
+                            if (item['filter'] == 'logout') {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const StudentLoginScreen()),
+                              );
+                            } else {
+                              setState(() => selectedIndex = index);
+                            }
+                          },
                         ),
-                        tileColor: isSelected ? const Color(0xFF2B6CB0).withAlpha(26) : null,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        onTap: () {
-                          if (item['filter'] == 'logout') {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const StudentLoginScreen()),
-                            );
-                          } else {
-                            setState(() {
-                              selectedIndex = index;
-                            });
-                          }
-                        },
                       );
                     },
                   ),
@@ -219,17 +239,16 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
               ],
             ),
           ),
-          
-          // Main Content
-          Expanded(
-            child: _buildMainContent(),
-          ),
+
+          // ── Main Content ─────────────────────────────────────────
+          Expanded(child: _buildMainContent()),
         ],
       ),
     );
   }
 
-  Widget _sidebarStat(String title, String value, IconData icon, Color color) {
+  Widget _sidebarStat(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -245,17 +264,17 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13),
+                style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13),
               ),
             ],
           ),
           Text(
             value,
             style: TextStyle(
-              color: color,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+                color: color, fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -266,8 +285,8 @@ class _StudentSidebarDashboardState extends State<StudentSidebarDashboard> {
     switch (selectedIndex) {
       case 0:
         return StudentProfileScreen(
-          studentId: widget.studentId,
-          studentName: widget.studentName,
+          studentId:       widget.studentId,
+          studentName:     widget.studentName,
           studentUsername: widget.studentId,
         );
       case 1:
