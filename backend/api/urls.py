@@ -22,9 +22,9 @@ from .views import (
     upload_student_profile_pic,
     get_admin_profile,
     upload_admin_profile_pic,
-    get_admin_notifications,       # ✅ added
-    get_notification_count,        # ✅ added
-    mark_notification_read,        # ✅ added
+    get_admin_notifications,
+    get_notification_count,
+    mark_notification_read,
 )
 
 urlpatterns = [
@@ -35,7 +35,10 @@ urlpatterns = [
     path('student/complaint/submit/', submit_complaint, name='submit_complaint'),
     path('student/complaint/<path:student_id>/<int:complaint_id>/', complaint_detail, name='complaint_detail'),
     path('student/complaint/track/<path:student_id>/', track_complaints, name='track_complaints'),
-    path('student/profile/<str:student_id>/', get_student_profile, name='get_student_profile'),
+    
+    # Change this line from <str:student_id> to <path:student_id>
+    path('student/profile/<path:student_id>/', get_student_profile, name='get_student_profile'),  # ✅ FIXED
+    
     path('student/upload-profile-pic/', upload_student_profile_pic, name='upload_student_profile_pic'),
     
     # Admin auth endpoints
