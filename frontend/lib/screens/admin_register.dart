@@ -21,6 +21,8 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
   final _secretKeyController = TextEditingController();
   final _phoneController = TextEditingController();
   final _departmentController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _addressController = TextEditingController();
 
   String? _selectedRole;
   bool _obscurePassword = true;
@@ -28,7 +30,6 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
   bool _obscureSecret = true;
   bool _isLoading = false;
   
-  // Profile picture
   Uint8List? _selectedProfileImageBytes;
   String? _selectedProfileImageName;
   bool _isUploadingProfilePic = false;
@@ -75,6 +76,8 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
     _secretKeyController.dispose();
     _phoneController.dispose();
     _departmentController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
     super.dispose();
   }
 
@@ -149,6 +152,8 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
     final role = _selectedRole;
     final phone = _phoneController.text.trim();
     final department = _departmentController.text.trim();
+    final email = _emailController.text.trim();
+    final address = _addressController.text.trim();
 
     if ([name, username, password, confirmPassword, secretKey].any((s) => s.isEmpty)) {
       _showSnack('Please fill in all required fields.', isError: true);
@@ -185,6 +190,8 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
           'role': role,
           'phone': phone,
           'department': department,
+          'email': email,
+          'address': address,
         }),
       );
 
@@ -192,7 +199,6 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 201 && data['success'] == true) {
-        // Upload profile picture if selected
         if (_selectedProfileImageBytes != null) {
           await _uploadProfilePicture(username);
         }
@@ -348,7 +354,6 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Profile Picture Section
           Center(
             child: Column(
               children: [
@@ -428,6 +433,16 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
           _fieldLabel('Phone (Optional)'),
           const SizedBox(height: 8),
           _buildTextField(controller: _phoneController, hint: 'Contact number', icon: Icons.phone_outlined),
+          const SizedBox(height: 18),
+
+          _fieldLabel('Email (Optional)'),
+          const SizedBox(height: 8),
+          _buildTextField(controller: _emailController, hint: 'Email address', icon: Icons.email_outlined),
+          const SizedBox(height: 18),
+
+          _fieldLabel('Address (Optional)'),
+          const SizedBox(height: 8),
+          _buildTextField(controller: _addressController, hint: 'Office address', icon: Icons.location_on_outlined, maxLines: 2),
           const SizedBox(height: 18),
 
           _fieldLabel('Password'),
@@ -582,6 +597,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
     required IconData icon,
     bool obscure = false,
     Widget? suffixIcon,
+    int maxLines = 1,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -592,6 +608,7 @@ class _AdminRegisterScreenState extends State<AdminRegisterScreen>
       child: TextField(
         controller: controller,
         obscureText: obscure,
+        maxLines: maxLines,
         style: const TextStyle(color: Colors.white, fontSize: 15),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: const Color(0xFF60A5FA), size: 20),
