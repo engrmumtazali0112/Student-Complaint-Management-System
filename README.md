@@ -15,7 +15,7 @@
 
 <br/>
 
-[📱 Features](#-features) · [🏗️ Architecture](#%EF%B8%8F-architecture) · [🚀 Quick Start](#-quick-start) · [📋 API Docs](#-api-endpoints) · [🤝 Contributing](#-contributing)
+[📱 Features](#-features) · [🖼️ Demo](#%EF%B8%8F-demo) · [🏗️ Architecture](#%EF%B8%8F-architecture) · [🚀 Quick Start](#-quick-start) · [📋 API Docs](#-api-endpoints) · [🤝 Contributing](#-contributing)
 
 </div>
 
@@ -51,6 +51,7 @@
 | 📎 **File Attachments** | Upload images, PDFs, or documents as supporting evidence |
 | 🔔 **Notifications** | Instant in-app alerts on complaint status changes |
 | 📜 **Complaint History** | Full history with timestamps and resolution details |
+| 🖼️ **Profile Picture** | Upload and update profile picture during registration or from profile |
 
 ### 👨‍💼 Admin Portal
 
@@ -61,7 +62,48 @@
 | 📊 **Live Dashboard** | Real-time counters — Total / Pending / Resolved / Rejected |
 | 🔍 **Search & Filter** | Find complaints by ID, title, student name, or type |
 | 🔔 **Auto-Notifications** | Students are automatically notified on any status change |
-| 👤 **Profile Management** | View and manage department admin profile |
+| 👤 **Profile Management** | View, manage, and update department admin profile picture |
+
+---
+
+## 🖼️ Demo
+
+### Welcome & Role Selection
+
+| Welcome Screen | Role Selection |
+|:--------------:|:--------------:|
+| ![Welcome Screen](demo/1.PNG) | ![Role Selection](demo/2.PNG) |
+
+> **Welcome Screen** — Highlights platform features: Easy Complaint Submission, Real-time Status Tracking, and Secure & Confidential access. **Role Selection** — Users choose between the Student Portal and Admin Portal.
+
+---
+
+### Student Portal
+
+| Student Login | Student Profile & Dashboard |
+|:-------------:|:---------------------------:|
+| ![Student Login](demo/3.PNG) | ![Student Profile](demo/4.PNG) |
+
+| Profile Details & Notifications | Track Complaints |
+|:--------------------------------:|:----------------:|
+| ![Profile Details](demo/5.PNG) | ![Track Complaints](demo/6.PNG) |
+
+> **Student Login** — Secure authentication using university roll number (e.g. `CS-06F/22-26`).  
+> **Profile & Dashboard** — Sidebar with complaint stats (Total / Pending / Resolved / Rejected), profile picture upload, and full personal details.  
+> **Notifications** — Real-time alerts when a complaint status changes (e.g. resolved, rejected).  
+> **Track Complaints** — Search and filter complaints by title, status, or ID with live counters.
+
+---
+
+### Admin Portal
+
+| Admin Login | Admin Profile & Dashboard | Pending Complaints |
+|:-----------:|:-------------------------:|:------------------:|
+| ![Admin Login](demo/7.PNG) | ![Admin Dashboard](demo/8.PNG) | ![Pending Complaints](demo/9.PNG) |
+
+> **Admin Login** — Dark-themed secure portal for authorized personnel only.  
+> **Admin Dashboard** — Role-based profile (e.g. Hostel Manager), complaint stats, and sidebar navigation across All / Pending / Resolved / Rejected views.  
+> **Pending Complaints** — Searchable list with status badges (RESOLVED / REJECTED), student name, roll number, and date — with one-click detail view.
 
 ---
 
@@ -117,6 +159,7 @@
 | Dart | 3.9.2 | Programming language |
 | `http` | 1.1.0 | REST API communication |
 | `file_picker` | 8.0.0 | File upload support |
+| `image_picker` | Latest | Profile picture selection |
 
 ### Backend
 
@@ -142,6 +185,8 @@
 | `POST` | `/api/student/complaint/submit/` | Submit a complaint (supports file upload) |
 | `GET` | `/api/student/complaint/track/<student_id>/` | Track all complaints |
 | `GET` | `/api/student/complaint/<student_id>/<complaint_id>/` | Complaint detail view |
+| `GET` | `/api/student/profile/<student_id>/` | Get student profile with stats |
+| `POST` | `/api/student/profile/upload-pic/<student_id>/` | Upload student profile picture |
 
 ### 🛡️ Admin Endpoints
 
@@ -157,6 +202,8 @@
 | `POST` | `/api/admin/complaint/reject/<id>/` | Reject with remarks |
 | `GET` | `/api/admin/new-count/` | Unseen complaint count |
 | `POST` | `/api/admin/mark-seen/` | Mark complaints as seen |
+| `GET` | `/api/admin/profile/<admin_id>/` | Get admin profile |
+| `POST` | `/api/admin/profile/upload-pic/<admin_id>/` | Upload admin profile picture |
 
 ### 🔗 Shared Endpoint
 
@@ -297,23 +344,37 @@ Student-Complaint-Management-System/
 │       ├── apps.py              # App config + signal registration
 │       └── signals.py           # Auto-notification on complaint updates
 │
-└── frontend/
-    ├── pubspec.yaml
-    └── lib/
-        └── screens/
-            ├── role_selection_screen.dart     # Entry point — Student or Admin
-            ├── student_login.dart
-            ├── student_register.dart
-            ├── student_dashboard.dart         # Stats, actions, notifications
-            ├── submit_complaint.dart
-            ├── track_complains.dart
-            ├── solved_complaints.dart
-            ├── admin_portal.dart              # Admin login
-            ├── admin_register.dart
-            ├── admin_dashboard.dart           # Role-based dashboard
-            ├── pending_complaints.dart
-            ├── admin_role_rejected_complaints.dart
-            └── confirmation.dart
+├── frontend/
+│   ├── pubspec.yaml
+│   └── lib/
+│       └── screens/
+│           ├── welcome.dart                       # Landing page
+│           ├── role_selection_screen.dart         # Student or Admin entry
+│           ├── student_login.dart
+│           ├── student_register.dart              # Registration with profile picture
+│           ├── student_sidebar_dashboard.dart     # Sidebar + stats + profile
+│           ├── student_profile_screen.dart        # Profile picture upload
+│           ├── submit_complaint.dart
+│           ├── track_complains.dart
+│           ├── view_complains.dart                # Complaint detail with remarks
+│           ├── solved_complaints.dart
+│           ├── admin_portal.dart                  # Admin login
+│           ├── admin_register.dart                # Registration with profile picture
+│           ├── admin_sidebar_dashboard.dart       # Sidebar + notifications tab
+│           ├── pending_complaints.dart
+│           ├── admin_role_rejected_complaints.dart
+│           └── confirmation.dart
+│
+└── demo/
+    ├── 1.PNG    # Welcome screen
+    ├── 2.PNG    # Role selection
+    ├── 3.PNG    # Student login
+    ├── 4.PNG    # Student profile & dashboard
+    ├── 5.PNG    # Profile details & notifications
+    ├── 6.PNG    # Track complaints
+    ├── 7.PNG    # Admin login
+    ├── 8.PNG    # Admin profile & dashboard
+    └── 9.PNG    # Pending complaints management
 ```
 
 ---
@@ -329,6 +390,7 @@ Student-Complaint-Management-System/
 | `father_name` | `CharField(100)` | Father's name |
 | `department` | `CharField(100)` | Academic department |
 | `session` | `CharField(50)` | Academic session |
+| `profile_picture` | `ImageField` | Optional profile photo |
 | `user` | `OneToOneField(User)` | Linked Django auth user |
 
 ### Complaint
@@ -354,6 +416,7 @@ Student-Complaint-Management-System/
 | `role` | `CharField(20)` | One of 10 `AdminRole` choices |
 | `phone` | `CharField(15)` | Optional contact number |
 | `department` | `CharField(100)` | Department label |
+| `profile_picture` | `ImageField` | Optional profile photo |
 
 ---
 
