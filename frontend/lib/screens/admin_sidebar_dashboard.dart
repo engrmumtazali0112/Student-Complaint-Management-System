@@ -32,14 +32,13 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
   Map<String, dynamic>? adminProfile;
   bool isLoadingProfile = true;
 
-  // Notifications menu item removed — it now lives inside the Profile screen
   final List<Map<String, dynamic>> menuItems = [
-    {'title': 'Profile',              'icon': Icons.person_outline,      'filter': 'profile'},
-    {'title': 'All Complaints',       'icon': Icons.list_alt,            'filter': 'all'},
-    {'title': 'Pending Complaints',   'icon': Icons.pending_actions,     'filter': 'pending'},
-    {'title': 'Resolved Complaints',  'icon': Icons.check_circle_outline,'filter': 'resolved'},
-    {'title': 'Rejected Complaints',  'icon': Icons.cancel_outlined,     'filter': 'rejected'},
-    {'title': 'Logout',               'icon': Icons.logout,              'filter': 'logout'},
+    {'title': 'Profile',             'icon': Icons.person_outline,       'filter': 'profile'},
+    {'title': 'All Complaints',      'icon': Icons.list_alt,             'filter': 'all'},
+    {'title': 'Pending Complaints',  'icon': Icons.pending_actions,      'filter': 'pending'},
+    {'title': 'Resolved Complaints', 'icon': Icons.check_circle_outline, 'filter': 'resolved'},
+    {'title': 'Rejected Complaints', 'icon': Icons.cancel_outlined,      'filter': 'rejected'},
+    {'title': 'Logout',              'icon': Icons.logout,               'filter': 'logout'},
   ];
 
   @override
@@ -52,7 +51,8 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
   Future<void> fetchCounts() async {
     try {
       final response = await http.get(
-        Uri.parse("http://localhost:8000/api/admin/complaints/${widget.adminRole}/"),
+        Uri.parse(
+            "http://localhost:8000/api/admin/complaints/${widget.adminRole}/"),
       );
 
       if (response.statusCode == 200 && mounted) {
@@ -75,13 +75,14 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
     setState(() => isLoadingProfile = true);
     try {
       final response = await http.get(
-        Uri.parse("http://localhost:8000/api/admin/profile/${widget.adminUsername}/"),
+        Uri.parse(
+            "http://localhost:8000/api/admin/profile/${widget.adminUsername}/"),
       );
 
       if (response.statusCode == 200 && mounted) {
         final data = jsonDecode(response.body);
         setState(() {
-          adminProfile    = data['data'];
+          adminProfile     = data['data'];
           isLoadingProfile = false;
         });
       } else {
@@ -117,8 +118,6 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
     }
   }
 
-  /// Returns profile-picture widget for the sidebar header,
-  /// with the same relative-URL fix used in the profile screen.
   Widget _sidebarAvatar() {
     final picUrl = adminProfile?['profile_picture'];
     final bool hasPic = picUrl != null && picUrl.toString().isNotEmpty;
@@ -126,7 +125,8 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
     String? absoluteUrl;
     if (hasPic) {
       final raw = picUrl.toString();
-      absoluteUrl = raw.startsWith('http') ? raw : 'http://127.0.0.1:8000$raw';
+      absoluteUrl =
+          raw.startsWith('http') ? raw : 'http://127.0.0.1:8000$raw';
     }
 
     return Container(
@@ -141,11 +141,8 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
           ? Image.network(
               absoluteUrl!,
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Icon(
-                getRoleIcon(),
-                color: Colors.white,
-                size: 36,
-              ),
+              errorBuilder: (_, __, ___) =>
+                  Icon(getRoleIcon(), color: Colors.white, size: 36),
             )
           : Icon(getRoleIcon(), color: Colors.white, size: 36),
     );
@@ -181,7 +178,10 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [getRoleColor(), getRoleColor().withAlpha(179)],
+                      colors: [
+                        getRoleColor(),
+                        getRoleColor().withAlpha(179),
+                      ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -234,6 +234,9 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
                 const Divider(),
 
                 // Menu Items
+                // FIX: Each ListTile is wrapped in Material(color: transparent)
+                // so that tileColor and ink splashes render correctly over the
+                // parent Container's white background.
                 Expanded(
                   child: ListView.builder(
                     itemCount: menuItems.length,
@@ -242,35 +245,45 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
                       final item       = menuItems[index];
                       final isSelected = selectedIndex == index;
 
-                      return ListTile(
-                        leading: Icon(
-                          item['icon'] as IconData,
-                          color: isSelected ? getRoleColor() : Colors.grey.shade500,
-                          size: 22,
-                        ),
-                        title: Text(
-                          item['title'] as String,
-                          style: TextStyle(
-                            color: isSelected ? getRoleColor() : Colors.grey.shade700,
-                            fontWeight:
-                                isSelected ? FontWeight.w600 : FontWeight.normal,
+                      return Material(
+                        color: Colors.transparent,
+                        child: ListTile(
+                          leading: Icon(
+                            item['icon'] as IconData,
+                            color: isSelected
+                                ? getRoleColor()
+                                : Colors.grey.shade500,
+                            size: 22,
                           ),
+                          title: Text(
+                            item['title'] as String,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? getRoleColor()
+                                  : Colors.grey.shade700,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          tileColor:
+                              isSelected ? getRoleColor().withAlpha(26) : null,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          onTap: () {
+                            if (item['filter'] == 'logout') {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        const WelcomeScreen()),
+                              );
+                            } else {
+                              setState(() => selectedIndex = index);
+                            }
+                          },
                         ),
-                        tileColor: isSelected ? getRoleColor().withAlpha(26) : null,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        onTap: () {
-                          if (item['filter'] == 'logout') {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const WelcomeScreen()),
-                            );
-                          } else {
-                            setState(() => selectedIndex = index);
-                          }
-                        },
                       );
                     },
                   ),
@@ -304,7 +317,9 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
               Text(
                 title,
                 style: TextStyle(
-                    color: color, fontWeight: FontWeight.w600, fontSize: 13),
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13),
               ),
             ],
           ),
@@ -322,9 +337,9 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
     switch (selectedIndex) {
       case 0:
         return AdminProfileScreen(
-          adminRole:      widget.adminRole,
-          adminName:      widget.adminName,
-          adminUsername:  widget.adminUsername,
+          adminRole:     widget.adminRole,
+          adminName:     widget.adminName,
+          adminUsername: widget.adminUsername,
         );
       case 1:
         return AdminRoleComplaintsScreen(
