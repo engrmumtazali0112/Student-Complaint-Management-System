@@ -446,23 +446,85 @@ def complaint_detail_by_id(request, complaint_id):
     }, status=status.HTTP_200_OK)
 
 
+# Add this function to your views.py file (put it near other student endpoints)
+
+@api_view(['GET'])
+def student_resolved_complaints(request, student_id):
+    """Get only resolved complaints for a student"""
+    try:
+        # Try to find student by student_id (case insensitive)
+        student = Student.objects.filter(student_id__iexact=student_id).first()
+        
+        if not student:
+            return Response({'success': False, 'message': 'Student not found'}, status=404)
+        
+        # Filter only resolved complaints, ordered by resolved date (newest first)
+        resolved_complaints = Complaint.objects.filter(
+            student=student, 
+            status='resolved'
+        ).order_by('-resolved_at')
+        
+        # Prepare the response data
+        data = []
+        for complaint in resolved_complaints:
+            data.append({
+                'id': complaint.pk,
+                'title': complaint.title or complaint.complaint_type,
+                'complaint_type': complaint.complaint_type,
+                'status': complaint.status,
+                'created_at': complaint.created_at.strftime('%b %d, %Y'),
+                'resolved_at': complaint.resolved_at.strftime('%b %d, %Y') if complaint.resolved_at else None,
+                'department': complaint.department,
+                'description': complaint.description,
+                'admin_type': complaint.admin_type,
+                'session': complaint.session,
+                'roll_number': complaint.roll_number or student.student_id,
+            })
+        
+        return Response({
+            'success': True, 
+            'count': resolved_complaints.count(), 
+            'data': data
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        print(f"Error in student_resolved_complaints: {str(e)}")
+        return Response({
+            'success': False, 
+            'message': f'Error: {str(e)}'
+        }, status=500)
+
+
+
 @api_view(['GET'])
 def solved_complaints(request):
-    query = request.GET.get('search', '')
-    complaints = Complaint.objects.filter(status='resolved').select_related('student')
+    """Get only resolved complaints for admin panel"""
+    admin_type = request.GET.get('admin_type', '')
+    search_query = request.GET.get('search', '')
+    
+    # Filter by admin_type if provided
+    if admin_type:
+        complaints = Complaint.objects.filter(
+            status='resolved',
+            admin_type=admin_type
+        ).select_related('student')
+    else:
+        complaints = Complaint.objects.filter(status='resolved').select_related('student')
 
-    if query:
+    if search_query:
         complaints = complaints.filter(
-            Q(complaint_type__icontains=query) |
-            Q(title__icontains=query) |
-            Q(student__name__icontains=query) |
-            Q(department__icontains=query) |
-            Q(pk__icontains=query)
+            Q(complaint_type__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(student__name__icontains=search_query) |
+            Q(department__icontains=search_query) |
+            Q(pk__icontains=search_query)
         )
+    
     complaints = complaints.order_by('-resolved_at')
-
-    data = [
-        {
+    
+    data = []
+    for c in complaints:
+        data.append({
             'id': c.pk,
             'complaint_type': c.complaint_type,
             'title': c.title or c.complaint_type,
@@ -471,47 +533,64 @@ def solved_complaints(request):
             'student_id': c.student.student_id,
             'student_name': c.student.name,
             'admin_type': c.admin_type,
+            'description': c.description,
             'attachment': c.attachment.url if c.attachment else None,
             'attachment_name': c.attachment_name,
-        }
-        for c in complaints
-    ]
-
-    return Response({'data': data})
-
+        })
+    
+    return Response({
+        'success': True, 
+        'data': data,
+        'count': len(data)
+    })
 
 @api_view(['GET'])
 def pending_complaints(request):
-    query = request.GET.get('search', '')
-    complaints = Complaint.objects.filter(status='pending')
+    """Get only pending complaints for admin panel"""
+    admin_type = request.GET.get('admin_type', '')
+    search_query = request.GET.get('search', '')
+    
+    # Filter by admin_type if provided
+    if admin_type:
+        complaints = Complaint.objects.filter(
+            status='pending',
+            admin_type=admin_type
+        ).select_related('student')
+    else:
+        complaints = Complaint.objects.filter(status='pending').select_related('student')
 
-    if query:
+    if search_query:
         complaints = complaints.filter(
-            Q(complaint_type__icontains=query) |
-            Q(title__icontains=query) |
-            Q(student__name__icontains=query) |
-            Q(status__icontains=query) |
-            Q(pk__icontains=query)
+            Q(complaint_type__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(student__name__icontains=search_query) |
+            Q(status__icontains=search_query) |
+            Q(pk__icontains=search_query)
         )
+    
     complaints = complaints.order_by('-created_at')
-
-    data = [
-        {
+    
+    data = []
+    for c in complaints:
+        data.append({
             'id': c.pk,
             'student_name': c.student.name,
+            'student_id': c.student.student_id,
             'complaint_type': c.complaint_type,
             'title': c.title or c.complaint_type,
             'status': c.status,
             'admin_type': c.admin_type,
             'created_at': c.created_at.strftime('%b %d, %Y'),
+            'description': c.description,
             'attachment': c.attachment.url if c.attachment else None,
             'attachment_name': c.attachment_name,
-        }
-        for c in complaints
-    ]
-
-    return Response({'data': data})
-
+        })
+    
+    return Response({
+        'success': True,
+        'data': data,
+        'count': len(data)
+    })
 
 @api_view(['GET'])
 def new_complaint_count(request):
@@ -815,71 +894,164 @@ def upload_admin_profile_pic(request):
 
 @api_view(['GET'])
 def get_admin_notifications(request):
-    """Get all notifications for admin's department."""
+    """Get all notifications for admin's department - includes new complaints"""
     admin_type = request.GET.get('admin_type', '')
+    
+    if not admin_type:
+        return Response({'success': False, 'message': 'admin_type required'}, status=400)
     
     notifications_data = []
     
-    # Get recently resolved complaints
+    # Get new (unseen) complaints for this admin type
+    new_complaints = Complaint.objects.filter(
+        admin_type=admin_type,
+        is_seen_by_admin=False,
+        status='pending'
+    ).select_related('student').order_by('-created_at')
+    
+    for complaint in new_complaints:
+        notifications_data.append({
+            'id': complaint.pk,
+            'type': 'new_complaint',
+            'message': f"📢 New complaint #{complaint.pk}: '{complaint.title or complaint.complaint_type}' from {complaint.student.name}",
+            'student_name': complaint.student.name,
+            'complaint_id': complaint.pk,
+            'created_at': complaint.created_at.strftime('%Y-%m-%d %H:%M'),
+            'is_read': False,
+        })
+    
+    # Get recently resolved complaints (last 7 days)
+    week_ago = timezone.now() - timezone.timedelta(days=7)
     resolved_complaints = Complaint.objects.filter(
         admin_type=admin_type,
         status='resolved',
-        resolved_at__isnull=False
-    ).order_by('-resolved_at')[:20]
+        resolved_at__gte=week_ago
+    ).select_related('student').order_by('-resolved_at')
     
     for complaint in resolved_complaints:
         notifications_data.append({
-            'id': complaint.pk,
-            'message': f"Complaint #{complaint.pk} from {complaint.student.name} has been resolved.",
+            'id': f"resolved_{complaint.pk}",
+            'type': 'resolved',
+            'message': f"✅ Complaint #{complaint.pk} from {complaint.student.name} has been resolved.",
             'student_name': complaint.student.name,
+            'complaint_id': complaint.pk,
             'created_at': complaint.resolved_at.strftime('%Y-%m-%d %H:%M'),
             'is_read': False,
         })
     
-    # Get recently rejected complaints
+    # Get recently rejected complaints (last 7 days)
     rejected_complaints = Complaint.objects.filter(
         admin_type=admin_type,
         status='rejected',
-        rejected_at__isnull=False
-    ).order_by('-rejected_at')[:20]
+        rejected_at__gte=week_ago
+    ).select_related('student').order_by('-rejected_at')
     
     for complaint in rejected_complaints:
         notifications_data.append({
-            'id': complaint.pk,
-            'message': f"Complaint #{complaint.pk} from {complaint.student.name} was rejected.",
+            'id': f"rejected_{complaint.pk}",
+            'type': 'rejected',
+            'message': f"❌ Complaint #{complaint.pk} from {complaint.student.name} was rejected.",
             'student_name': complaint.student.name,
+            'complaint_id': complaint.pk,
             'created_at': complaint.rejected_at.strftime('%Y-%m-%d %H:%M'),
             'is_read': False,
         })
     
+    # Sort by date (newest first)
     notifications_data.sort(key=lambda x: x['created_at'], reverse=True)
     
     return Response({
         'success': True,
         'notifications': notifications_data[:50],
-        'count': len(notifications_data)
+        'count': len(notifications_data),
+        'new_complaints_count': new_complaints.count()
     })
 
 
 @api_view(['GET'])
 def get_notification_count(request):
-    """Get count of unread notifications."""
+    """Get count of unread notifications (new complaints)"""
     admin_type = request.GET.get('admin_type', '')
     
-    week_ago = timezone.now() - timezone.timedelta(days=7)
+    if not admin_type:
+        return Response({'count': 0})
     
+    # Count new unseen complaints
     count = Complaint.objects.filter(
         admin_type=admin_type,
-        resolved_at__gte=week_ago
-    ).count() + Complaint.objects.filter(
-        admin_type=admin_type,
-        rejected_at__gte=week_ago
+        is_seen_by_admin=False,
+        status='pending'
     ).count()
     
-    return Response({'count': min(count, 99)})
+    return Response({'count': count})
+
+
 
 
 @api_view(['POST'])
 def mark_notification_read(request, notification_id):
     """Mark a notification as read."""
     return Response({'success': True})
+
+
+from django.contrib.auth.models import User
+from .models import AdminProfile
+
+@api_view(['GET'])
+def get_available_departments(request):
+    """
+    Get list of departments that have admin accounts created.
+    This ensures complaints can only be sent to departments with existing admins.
+    """
+    # Get all admin profiles with their roles
+    admin_profiles = AdminProfile.objects.select_related('user').all()
+    
+    # Extract unique roles that have active admin users
+    available_departments = []
+    for profile in admin_profiles:
+        # Check if the admin user is active
+        if profile.user and profile.user.is_active:
+            department_info = {
+                'role': profile.role,
+                'display_name': profile.get_role_display_name() if hasattr(profile, 'get_role_display_name') else profile.role.capitalize(),
+                'admin_name': profile.user.get_full_name() or profile.user.username,
+            }
+            available_departments.append(department_info)
+    
+    # Define role to display name mapping
+    role_display_names = {
+        'administration': 'Administration',
+        'warden': 'Warden',
+        'examination': 'Examination',
+        'treasury': 'Treasury',
+        'security': 'Security',
+        'transport': 'Transport',
+        'library': 'Library',
+        'hostel': 'Hostel',
+        'sports': 'Sports',
+        'it': 'IT Department',
+    }
+    
+    # Format the response
+    departments = []
+    for profile in admin_profiles:
+        if profile.user and profile.user.is_active:
+            departments.append({
+                'value': profile.role,
+                'label': role_display_names.get(profile.role, profile.role.capitalize()),
+                'admin_name': profile.user.get_full_name() or profile.user.username,
+            })
+    
+    # Remove duplicates (in case of multiple admins for same role)
+    seen = set()
+    unique_departments = []
+    for dept in departments:
+        if dept['value'] not in seen:
+            seen.add(dept['value'])
+            unique_departments.append(dept)
+    
+    return Response({
+        'success': True,
+        'departments': unique_departments,
+        'count': len(unique_departments)
+    }, status=status.HTTP_200_OK)
