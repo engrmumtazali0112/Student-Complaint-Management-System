@@ -1,23 +1,22 @@
-import 'package:flutter/material.dart';
-import 'screens/welcome.dart';
+﻿import 'package:flutter/material.dart';
+import 'screens/shared/welcome.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const DigitalComplaintSystem());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class DigitalComplaintSystem extends StatelessWidget {
+  const DigitalComplaintSystem({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Digital Complaint System',
       debugShowCheckedModeBanner: false,
-      title: 'Digital Complain System',
       theme: ThemeData(
-        primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
-      home: const WelcomeScreen(), // <-- call your welcome screen here
+      home: const WelcomeScreen(),
     );
   }
 }
-
