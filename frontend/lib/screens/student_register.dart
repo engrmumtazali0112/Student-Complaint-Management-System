@@ -168,7 +168,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
     setState(() => isLoading = true);
 
-    // Use localhost instead of 127.0.0.1 for better compatibility
     final url = Uri.parse('http://localhost:8000/api/student/register/');
 
     try {
@@ -177,7 +176,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
         "father_name": fatherNameController.text.trim(),
         "roll_no": rollNoController.text.trim().toUpperCase(),
         "department": selectedDepartment,
-        "session": "2024-2028",
+        // Session field removed - backend will handle default value
         "password": passwordController.text,
         "confirm_password": confirmPasswordController.text,
         "email": emailController.text.trim(),
@@ -208,13 +207,11 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
 
       if (!mounted) return;
 
-      // Check if response is JSON
       if (response.body.trim().startsWith('{')) {
         final data = jsonDecode(response.body);
         
         if (response.statusCode == 200 || response.statusCode == 201) {
           if (data['success'] == true) {
-            // Upload profile picture if selected
             if (selectedImageBytes != null) {
               await uploadProfilePicture(rollNoController.text.trim().toUpperCase());
             }
@@ -229,7 +226,6 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
               ),
             );
 
-            // Clear form
             nameController.clear();
             fatherNameController.clear();
             rollNoController.clear();
@@ -269,8 +265,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
           );
         }
       } else {
-        // Response is not JSON - likely an HTML error page
-        debugPrint("Non-JSON response received: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}");
+        debugPrint("Non-JSON response received");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Server error. Please check if backend is running correctly.'),
@@ -482,6 +477,7 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                     ),
                     const SizedBox(height: 16),
 
+                    // Department Dropdown
                     const Text(
                       "Department *",
                       style: TextStyle(
@@ -527,16 +523,10 @@ class _StudentRegisterScreenState extends State<StudentRegisterScreen> {
                         isExpanded: true,
                       ),
                     ),
+                    
                     const SizedBox(height: 16),
 
-                    _buildInputField(
-                      label: "Session",
-                      hint: "e.g., 2024-2028",
-                      icon: Icons.calendar_today_outlined,
-                      controller: TextEditingController(text: "2024-2028"),
-                      enabled: false,
-                    ),
-                    const SizedBox(height: 16),
+                    // Session field REMOVED - no longer displayed
 
                     _buildInputField(
                       label: "Email",
