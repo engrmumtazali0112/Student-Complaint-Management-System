@@ -7,7 +7,9 @@ from .views import (
     complaint_detail, 
     complaint_detail_by_id,
     track_complaints, 
+    student_resolved_complaints,
     complaint_list, 
+    get_available_departments,
     solved_complaints, 
     update_complaint_status, 
     pending_complaints,
@@ -35,10 +37,8 @@ urlpatterns = [
     path('student/complaint/submit/', submit_complaint, name='submit_complaint'),
     path('student/complaint/<path:student_id>/<int:complaint_id>/', complaint_detail, name='complaint_detail'),
     path('student/complaint/track/<path:student_id>/', track_complaints, name='track_complaints'),
-    
-    # Change this line from <str:student_id> to <path:student_id>
-    path('student/profile/<path:student_id>/', get_student_profile, name='get_student_profile'),  # ✅ FIXED
-    
+    path('student/complaint/resolved/<path:student_id>/', student_resolved_complaints, name='student_resolved_complaints'),
+    path('student/profile/<path:student_id>/', get_student_profile, name='get_student_profile'),
     path('student/upload-profile-pic/', upload_student_profile_pic, name='upload_student_profile_pic'),
     
     # Admin auth endpoints
@@ -65,4 +65,5 @@ urlpatterns = [
     
     # Direct complaint access
     path('complaint/<int:complaint_id>/', complaint_detail_by_id, name='complaint_detail_by_id'),
+    path('departments/available/', get_available_departments, name='get_available_departments'),
 ]
