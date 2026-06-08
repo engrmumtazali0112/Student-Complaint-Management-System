@@ -1,194 +1,210 @@
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:file_picker/file_picker.dart';
-import 'confirmation.dart';
 
 class SubmitComplaintScreen extends StatefulWidget {
-  final String? studentId;
+  final String studentId;
 
-  const SubmitComplaintScreen({super.key, this.studentId});
+  const SubmitComplaintScreen({super.key, required this.studentId});
 
   @override
   State<SubmitComplaintScreen> createState() => _SubmitComplaintScreenState();
 }
 
 class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
-  final rollController    = TextEditingController();
-  final deptController    = TextEditingController();
-  final sessionController = TextEditingController();
-  final typeController    = TextEditingController();
-  final descController    = TextEditingController();
-
+  final TextEditingController descriptionController = TextEditingController();
+  final TextEditingController titleController = TextEditingController();
+  
+  String? selectedComplaintType;
   String? selectedAdminType;
+  File? selectedFile;
+  String? fileName;
+  
   bool isLoading = false;
-
-  // ── File upload (bytes-based — works on Web + Mobile) ──────────
-  Uint8List? _fileBytes;
-  String?    _fileName;
-  String?    _fileType;
-  bool       isFileSelected = false;
-
-  final List<Map<String, dynamic>> adminTypes = [
-    {'value': 'administration', 'label': 'Administration', 'icon': Icons.business_center,  'color': const Color(0xFF2B6CB0)},
-    {'value': 'warden',         'label': 'Warden',         'icon': Icons.apartment,         'color': const Color(0xFF10B981)},
-    {'value': 'examination',    'label': 'Examination',    'icon': Icons.edit_note,          'color': const Color(0xFFF59E0B)},
-    {'value': 'treasury',       'label': 'Treasury',       'icon': Icons.account_balance,    'color': const Color(0xFF8B5CF6)},
-    {'value': 'security',       'label': 'Security',       'icon': Icons.security,           'color': const Color(0xFFEF4444)},
-    {'value': 'transport',      'label': 'Transport',      'icon': Icons.directions_bus,     'color': const Color(0xFF06B6D4)},
-    {'value': 'library',        'label': 'Library',        'icon': Icons.menu_book,          'color': const Color(0xFFEC4899)},
-    {'value': 'hostel',         'label': 'Hostel',         'icon': Icons.house,              'color': const Color(0xFFF97316)},
-    {'value': 'sports',         'label': 'Sports',         'icon': Icons.sports_soccer,      'color': const Color(0xFF22C55E)},
-    {'value': 'it',             'label': 'IT Department',  'icon': Icons.computer,           'color': const Color(0xFF6366F1)},
+  bool isLoadingDepartments = true;
+  
+  List<Map<String, dynamic>> availableDepartments = [];
+  
+  final List<String> complaintTypes = [
+    'Academic Issue',
+    'Fee Issue',
+    'Hostel Issue',
+    'Transport Issue',
+    'Library Issue',
+    'Sports Issue',
+    'IT/Lab Issue',
+    'Security Issue',
+    'Examination Issue',
+    'General Complaint',
+    'Infrastructure Issue',
+    'Harassment',
+    'Other',
   ];
 
   @override
-  void dispose() {
-    rollController.dispose();
-    deptController.dispose();
-    sessionController.dispose();
-    typeController.dispose();
-    descController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    fetchAvailableDepartments();
   }
 
-  // ── Pick file using bytes (Web + Mobile safe) ──────────────────
+  Future<void> fetchAvailableDepartments() async {
+    setState(() => isLoadingDepartments = true);
+    
+    try {
+      final response = await http.get(
+        Uri.parse('http://127.0.0.1:8000/api/departments/available/'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            availableDepartments = List<Map<String, dynamic>>.from(data['departments']);
+            isLoadingDepartments = false;
+          });
+          
+          if (availableDepartments.isNotEmpty && mounted) {
+            setState(() {
+              selectedAdminType = availableDepartments[0]['value'] as String;
+            });
+          }
+        } else {
+          if (mounted) setState(() => isLoadingDepartments = false);
+          _showErrorSnackBar('Failed to load departments');
+        }
+      } else {
+        if (mounted) setState(() => isLoadingDepartments = false);
+        _showErrorSnackBar('Server error. Please try again.');
+      }
+    } catch (e) {
+      debugPrint('Error fetching departments: $e');
+      if (mounted) setState(() => isLoadingDepartments = false);
+      _showErrorSnackBar('Connection error. Please check your internet.');
+    }
+  }
+
   Future<void> pickFile() async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        withData: true, // ← forces bytes to be loaded on all platforms
-        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
       );
-
-      if (result != null && result.files.single.bytes != null) {
+      
+      if (result != null && mounted) {
         setState(() {
-          _fileBytes      = result.files.single.bytes;
-          _fileName       = result.files.single.name;
-          _fileType       = result.files.single.extension;
-          isFileSelected  = true;
+          selectedFile = File(result.files.single.path!);
+          fileName = result.files.single.name;
         });
-      } else if (result != null && mounted) {
-        // bytes were null — shouldn't happen with withData:true, but guard anyway
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not read file. Please try again.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
+        _showSuccessSnackBar('File attached successfully');
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking file: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+      _showErrorSnackBar('Error picking file: $e');
     }
-  }
-
-  void removeFile() {
-    setState(() {
-      _fileBytes     = null;
-      _fileName      = null;
-      _fileType      = null;
-      isFileSelected = false;
-    });
   }
 
   Future<void> submitComplaint() async {
-    if (rollController.text.isEmpty ||
-        deptController.text.isEmpty ||
-        sessionController.text.isEmpty ||
-        typeController.text.isEmpty ||
-        descController.text.isEmpty ||
-        selectedAdminType == null) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields and select a department"),
-          backgroundColor: Color(0xFFEF4444),
-        ),
-      );
+    if (titleController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter a complaint title');
       return;
     }
-
+    
+    if (descriptionController.text.trim().isEmpty) {
+      _showErrorSnackBar('Please enter complaint description');
+      return;
+    }
+    
+    if (selectedComplaintType == null) {
+      _showErrorSnackBar('Please select complaint type');
+      return;
+    }
+    
+    if (selectedAdminType == null) {
+      _showErrorSnackBar('Please select department to send complaint');
+      return;
+    }
+    
     setState(() => isLoading = true);
-
+    
     try {
-      final url = Uri.parse('http://localhost:8000/api/student/complaint/submit/');
-
-      var request = http.MultipartRequest('POST', url);
-
-      // Text fields
-      request.fields['roll_number']    = rollController.text.trim();
-      request.fields['department']     = deptController.text.trim();
-      request.fields['session']        = sessionController.text.trim();
-      request.fields['complaint_type'] = typeController.text.trim();
-      request.fields['title']          = typeController.text.trim();
-      request.fields['description']    = descController.text.trim();
-      request.fields['admin_type']     = selectedAdminType!;
-
-      // File — attach via bytes so it works on Flutter Web too
-      if (isFileSelected && _fileBytes != null) {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('http://127.0.0.1:8000/api/student/complaint/submit/'),
+      );
+      
+      request.fields['roll_number'] = widget.studentId;
+      request.fields['department'] = selectedComplaintType!;
+      request.fields['session'] = '2024-2028';
+      request.fields['complaint_type'] = selectedComplaintType!;
+      request.fields['title'] = titleController.text.trim();
+      request.fields['description'] = descriptionController.text.trim();
+      request.fields['admin_type'] = selectedAdminType!;
+      
+      if (selectedFile != null) {
         request.files.add(
-          http.MultipartFile.fromBytes(
+          await http.MultipartFile.fromPath(
             'attachment',
-            _fileBytes!,
-            filename: _fileName ?? 'attachment',
+            selectedFile!.path,
+            filename: fileName,
           ),
         );
-        request.fields['attachment_name'] = _fileName ?? '';
-        request.fields['attachment_type'] = _fileType ?? '';
       }
-
-      final response     = await request.send();
-      final responseBody = await response.stream.bytesToString();
-      final data         = jsonDecode(responseBody);
-
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
       if (!mounted) return;
-
-      if (response.statusCode == 201 && data['success'] == true) {
-        final String savedId = widget.studentId ?? rollController.text;
-
-        rollController.clear();
-        deptController.clear();
-        sessionController.clear();
-        typeController.clear();
-        descController.clear();
-        setState(() {
-          selectedAdminType = null;
-          _fileBytes        = null;
-          isFileSelected    = false;
-        });
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ComplaintSubmittedScreen(studentId: savedId),
-          ),
-        );
+      
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          _showSuccessSnackBar('Complaint submitted successfully!');
+          
+          titleController.clear();
+          descriptionController.clear();
+          setState(() {
+            selectedComplaintType = null;
+            selectedFile = null;
+            fileName = null;
+          });
+          
+          Navigator.pop(context, true);
+        } else {
+          _showErrorSnackBar(data['message'] ?? 'Submission failed');
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? "Submission failed"),
-            backgroundColor: const Color(0xFFEF4444),
-          ),
-        );
+        _showErrorSnackBar('Failed to submit complaint. Please try again.');
       }
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Error: $e"),
-          backgroundColor: const Color(0xFFEF4444),
-        ),
-      );
+      debugPrint('Submit error: $e');
+      _showErrorSnackBar('Connection error. Please try again.');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -196,399 +212,301 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Color(0xFF1A365D)),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           "Submit Complaint",
           style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1A365D)),
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1A365D),
+          ),
         ),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header card
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1A365D), Color(0xFF2B6CB0)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.blue.withAlpha(40),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8))
-                ],
-              ),
+      body: isLoadingDepartments
+          ? const Center(
               child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withAlpha(30),
-                        shape: BoxShape.circle),
-                    child: const Icon(Icons.description_outlined,
-                        size: 40, color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Submit Your Complaint",
-                    style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    "Select the department your complaint belongs to",
-                    style:
-                        TextStyle(fontSize: 13, color: Colors.white.withAlpha(179)),
-                    textAlign: TextAlign.center,
-                  ),
+                  CircularProgressIndicator(color: Color(0xFF2B6CB0)),
+                  SizedBox(height: 16),
+                  Text("Loading available departments..."),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // Form card
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.grey.withAlpha(30),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5))
-                ],
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildInputField(
-                        label: "Roll Number",
-                        hint: "Enter your roll number",
-                        icon: Icons.badge_outlined,
-                        controller: rollController),
-                    const SizedBox(height: 18),
-                    _buildInputField(
-                        label: "Department",
-                        hint: "Enter your department",
-                        icon: Icons.business_outlined,
-                        controller: deptController),
-                    const SizedBox(height: 18),
-                    _buildInputField(
-                        label: "Session",
-                        hint: "e.g., 2022-2026",
-                        icon: Icons.calendar_today_outlined,
-                        controller: sessionController),
-                    const SizedBox(height: 18),
-                    _buildInputField(
-                        label: "Complaint Type",
-                        hint: "Enter complaint type",
-                        icon: Icons.category_outlined,
-                        controller: typeController),
-                    const SizedBox(height: 18),
-
-                    // Department dropdown
-                    const Text(
-                      "Send To Department",
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A365D)),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF7F9FC),
-                        borderRadius: BorderRadius.circular(14),
+            )
+          : availableDepartments.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.business_center, size: 80, color: Colors.grey.shade400),
+                      const SizedBox(height: 16),
+                      Text(
+                        "No departments available",
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey.shade600),
                       ),
-                      child: DropdownButtonFormField<String>(
-                        value: selectedAdminType,
-                        decoration: InputDecoration(
-                          prefixIcon: const Icon(Icons.send_outlined,
-                              color: Color(0xFF2B6CB0), size: 20),
-                          border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none),
-                          contentPadding: const EdgeInsets.symmetric(
-                              vertical: 8, horizontal: 16),
-                        ),
-                        hint: const Text("Select department to send complaint"),
-                        items: adminTypes.map<DropdownMenuItem<String>>((type) {
-                          return DropdownMenuItem<String>(
-                            value: type['value'] as String,
-                            child: Row(
-                              children: [
-                                Icon(type['icon'] as IconData,
-                                    color: type['color'] as Color, size: 18),
-                                const SizedBox(width: 10),
-                                Text(type['label'] as String),
-                              ],
+                      const SizedBox(height: 8),
+                      Text(
+                        "Please contact administrator",
+                        style: TextStyle(color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ),
+                )
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withAlpha(30),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
                             ),
-                          );
-                        }).toList(),
-                        onChanged: (value) =>
-                            setState(() => selectedAdminType = value),
-                        isExpanded: true,
-                      ),
-                    ),
-
-                    const SizedBox(height: 18),
-
-                    // ── File Upload Section ────────────────────────
-                    const Text(
-                      "Attach File (Optional)",
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1A365D)),
-                    ),
-                    const SizedBox(height: 8),
-
-                    if (!isFileSelected)
-                      GestureDetector(
-                        onTap: pickFile,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF7F9FC),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(color: Colors.grey.shade300),
-                          ),
+                          ],
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
                           child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.cloud_upload_outlined,
-                                  size: 40, color: Color(0xFF2B6CB0)),
-                              const SizedBox(height: 8),
-                              Text(
-                                "Click to upload file",
-                                style:
-                                    TextStyle(color: Colors.grey.shade600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                "Supported: Images, PDF, DOC",
+                              // Title Field
+                              const Text(
+                                "Complaint Title *",
                                 style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey.shade500),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A365D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: titleController,
+                                maxLines: 2,
+                                decoration: InputDecoration(
+                                  hintText: "Brief title of your complaint",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF7F9FC),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Complaint Type Dropdown
+                              const Text(
+                                "Complaint Type *",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A365D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: selectedComplaintType,
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF7F9FC),
+                                ),
+                                items: complaintTypes.map<DropdownMenuItem<String>>((type) {
+                                  return DropdownMenuItem<String>(
+                                    value: type,
+                                    child: Text(type),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    selectedComplaintType = value;
+                                  });
+                                },
+                                hint: const Text("Select complaint type"),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Send To Department
+                              const Text(
+                                "Send To Department *",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A365D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7F9FC),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: selectedAdminType,
+                                    isExpanded: true,
+                                    hint: const Text("Select department"),
+                                    items: availableDepartments.map<DropdownMenuItem<String>>((dept) {
+                                      return DropdownMenuItem<String>(
+                                        value: dept['value'] as String,
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              dept['label'] as String,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            Text(
+                                              "Admin: ${dept['admin_name']}",
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade600,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        selectedAdminType = value;
+                                      });
+                                    },
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Description Field
+                              const Text(
+                                "Description *",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A365D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              TextField(
+                                controller: descriptionController,
+                                maxLines: 5,
+                                decoration: InputDecoration(
+                                  hintText: "Describe your complaint in detail...",
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  filled: true,
+                                  fillColor: const Color(0xFFF7F9FC),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // File Attachment
+                              const Text(
+                                "Attach File (Optional)",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF1A365D),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              InkWell(
+                                onTap: pickFile,
+                                child: Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey.shade300),
+                                    borderRadius: BorderRadius.circular(12),
+                                    color: const Color(0xFFF7F9FC),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.attach_file,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          fileName ?? 'Click to attach file (jpg, png, pdf, doc)',
+                                          style: TextStyle(
+                                            color: fileName != null ? Colors.green : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                      if (fileName != null)
+                                        IconButton(
+                                          icon: const Icon(Icons.close, size: 20),
+                                          onPressed: () {
+                                            setState(() {
+                                              selectedFile = null;
+                                              fileName = null;
+                                            });
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Submit Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 50,
+                                child: ElevatedButton(
+                                  onPressed: isLoading ? null : submitComplaint,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF2B6CB0),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: isLoading
+                                      ? const SizedBox(
+                                          height: 20,
+                                          width: 20,
+                                          child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      : const Text(
+                                          "Submit Complaint",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                ),
                               ),
                             ],
                           ),
                         ),
                       ),
-
-                    if (isFileSelected)
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: Colors.green.shade300),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.green.withAlpha(26),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Icon(
-                                _fileType == 'pdf'
-                                    ? Icons.picture_as_pdf
-                                    : (_fileType == 'jpg' ||
-                                            _fileType == 'jpeg' ||
-                                            _fileType == 'png'
-                                        ? Icons.image
-                                        : Icons.insert_drive_file),
-                                color: Colors.green,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _fileName ?? 'File',
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  Text(
-                                    'File attached successfully',
-                                    style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.green.shade600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close,
-                                  color: Colors.red, size: 20),
-                              onPressed: removeFile,
-                            ),
-                          ],
-                        ),
-                      ),
-
-                    const SizedBox(height: 18),
-
-                    _buildDescriptionField(
-                      label: "Description",
-                      hint: "Describe your issue in detail...",
-                      icon: Icons.description_outlined,
-                      controller: descController,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Submit button
-            SizedBox(
-              width: double.infinity,
-              height: 55,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : submitComplaint,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2B6CB0),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                ),
-                child: isLoading
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.send, color: Colors.white, size: 20),
-                          SizedBox(width: 10),
-                          Text(
-                            "Submit Complaint",
-                            style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white),
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildInputField({
-    required String label,
-    required String hint,
-    required IconData icon,
-    required TextEditingController controller,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A365D))),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
-              borderRadius: BorderRadius.circular(14)),
-          child: TextField(
-            controller: controller,
-            style: const TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              prefixIcon:
-                  Icon(icon, color: const Color(0xFF2B6CB0), size: 20),
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDescriptionField({
-    required String label,
-    required String hint,
-    required IconData icon,
-    required TextEditingController controller,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label,
-            style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF1A365D))),
-        const SizedBox(height: 8),
-        Container(
-          decoration: BoxDecoration(
-              color: const Color(0xFFF7F9FC),
-              borderRadius: BorderRadius.circular(14)),
-          child: TextField(
-            controller: controller,
-            maxLines: 5,
-            style: const TextStyle(fontSize: 16),
-            decoration: InputDecoration(
-              prefixIcon: Padding(
-                padding: const EdgeInsets.only(bottom: 60),
-                child: Icon(icon, color: const Color(0xFF2B6CB0), size: 20),
-              ),
-              hintText: hint,
-              hintStyle: TextStyle(color: Colors.grey.shade400),
-              border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none),
-              contentPadding:
-                  const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-              alignLabelWithHint: true,
-            ),
-          ),
-        ),
-      ],
-    );
+  @override
+  void dispose() {
+    descriptionController.dispose();
+    titleController.dispose();
+    super.dispose();
   }
 }
