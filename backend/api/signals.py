@@ -1,24 +1,39 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
+from .models import Complaint, Notification, AdminProfile
 from django.contrib.auth.models import User
-from .models import Student
 
-@receiver(post_save, sender=User)
-def create_student(sender, instance, created, **kwargs):
+@receiver(post_save, sender=Complaint)
+def create_complaint_notifications(sender, instance, created, **kwargs):
+    """Create notifications when complaint is created or updated"""
+    
     if created:
-        # Automatically create a Student for the new User
-        student_data = getattr(instance, 'student_data', None)
-        if student_data:
-            Student.objects.create(
-                user=instance,
-                student_id=student_data.get('student_id'),
-                name=student_data.get('name'),
-                father_name= student_data.get('father_name'),
-                department=student_data.get('department'),
-                session=student_data.get('session')
-        )
-
-@receiver(post_save, sender=User)
-def save_student(sender, instance, **kwargs):
-    if hasattr(instance, 'student'):
-        instance.student.save()
+        # New complaint submitted - notify the assigned admin department
+        try:
+            # Find admin users with matching role
+            admin_profiles = AdminProfile.objects.filter(role=instance.admin_type)
+            
+            for admin_profile in admin_profiles:
+                # Create notification for admin (you'll need an AdminNotification model)
+                # For now, we'll mark complaint as unseen
+                instance.is_seen_by_admin = False
+                instance.save(update_fields=['is_seen_by_admin'])
+                
+        except Exception as e:
+            print(f"Error creating admin notification: {e}")
+    
+    else:
+        # Status changed - notify student
+        if instance.status == 'resolved':
+            Notification.objects.create(
+                student=instance.student,
+                message=f"✅ Your complaint '{instance.title or instance.complaint_type}' has been resolved.",
+                created_at=timezone.now()
+            )
+        elif instance.status == 'rejected' and instance.rejection_remarks:
+            Notification.objects.create(
+                student=instance.student,
+                message=f"❌ Your complaint '{instance.title or instance.complaint_type}' was rejected. Reason: {instance.rejection_remarks}",
+                created_at=timezone.now()
+            )
