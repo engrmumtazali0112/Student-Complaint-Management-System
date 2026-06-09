@@ -1,126 +1,192 @@
 import 'package:flutter/material.dart';
-import '../student/student_login.dart';
-import '../admin/admin_login.dart';
+import 'role_selection_screen.dart';
+
+void main() {
+  runApp(const DigitalComplaintSystem());
+}
+
+class DigitalComplaintSystem extends StatelessWidget {
+  const DigitalComplaintSystem({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Digital Complaint System',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        // fontFamily: 'Roboto' removed — prevents blank screen from CDN font fetch failure
+      ),
+      home: const WelcomeScreen(),
+    );
+  }
+}
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F8),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Logo / Icon
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1A365D), Color(0xFF2B6CB0)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(28),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF1A365D).withAlpha(60),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.school_rounded,
-                  color: Colors.white,
-                  size: 56,
-                ),
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Top Image
+            SizedBox(
+              height: size.height * 0.3,
+              width: double.infinity,
+              child: Image.asset(
+                'assets/images/clg pic.jpg',
+                fit: BoxFit.cover,
               ),
+            ),
 
-              const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
-              const Text(
-                'Digital Complaint\nManagement System',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF1A365D),
-                  height: 1.2,
-                ),
+            // Title
+            const Text(
+              'Digital Complaint System',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
               ),
+              textAlign: TextAlign.center,
+            ),
 
-              const SizedBox(height: 12),
+            const SizedBox(height: 8),
 
-              Text(
-                'Submit and track your complaints easily',
-                textAlign: TextAlign.center,
+            // Subtitle
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Submit, track, and resolve complaints efficiently with our streamlined platform',
                 style: TextStyle(
                   fontSize: 14,
-                  color: Colors.grey.shade500,
+                  color: Colors.black54,
+                  height: 1.4,
                 ),
+                textAlign: TextAlign.center,
               ),
+            ),
 
-              const SizedBox(height: 56),
+            const SizedBox(height: 28),
 
-              // Student Button
-              SizedBox(
+            // Feature Cards
+            const FeatureCard(
+              icon: Icons.check_circle,
+              iconColor: Colors.green,
+              title: 'Easy Complaint Submission',
+              subtitle: 'Submit in under 2 minutes',
+            ),
+            const FeatureCard(
+              icon: Icons.access_time,
+              iconColor: Colors.orange,
+              title: 'Real-time Status Tracking',
+              subtitle: 'Live updates on progress',
+            ),
+            const FeatureCard(
+              icon: Icons.security,
+              iconColor: Colors.purple,
+              title: 'Secure And Confidential',
+              subtitle: 'Enterprise-grade security',
+            ),
+
+            const SizedBox(height: 30),
+
+            // Get Started Button
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+              child: SizedBox(
                 width: double.infinity,
-                height: 54,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => const StudentLoginScreen()),
-                  ),
-                  icon: const Icon(Icons.person_outline, size: 22),
-                  label: const Text(
-                    'Student Login',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const RoleSelectionScreen()),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2B6CB0),
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF007BFF),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    elevation: 0,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 3,
+                  ),
+                  child: const Text(
+                    'Get Started',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
+            ),
 
-              const SizedBox(height: 16),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-              // Admin Button
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: OutlinedButton.icon(
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                  ),
-                  icon: const Icon(Icons.admin_panel_settings_outlined,
-                      size: 22),
-                  label: const Text(
-                    'Admin Login',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF1A365D),
-                    side: const BorderSide(
-                        color: Color(0xFF1A365D), width: 1.5),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                  ),
-                ),
+// Reusable Feature Card Widget
+class FeatureCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+
+  const FeatureCard({
+    super.key,
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.grey.shade100,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        // FIX: Material wrapper required so ListTile ink splashes
+        // render correctly over the Container's background color.
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: iconColor.withAlpha(26),
+              child: Icon(icon, color: iconColor),
+            ),
+            title: Text(
+              title,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
-            ],
+            ),
+            subtitle: Text(
+              subtitle,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+              ),
+            ),
           ),
         ),
       ),
