@@ -3,8 +3,13 @@ import '../student/student_sidebar_dashboard.dart';
 
 class ComplaintSubmittedScreen extends StatelessWidget {
   final String studentId;
-  
-  const ComplaintSubmittedScreen({super.key, required this.studentId});
+  final String studentName;
+
+  const ComplaintSubmittedScreen({
+    super.key,
+    required this.studentId,
+    this.studentName = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,29 +28,18 @@ class ComplaintSubmittedScreen extends StatelessWidget {
                     color: Colors.green.withAlpha(26),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.check_circle,
-                    color: Colors.green,
-                    size: 80,
-                  ),
+                  child: const Icon(Icons.check_circle, color: Colors.green, size: 80),
                 ),
                 const SizedBox(height: 32),
                 const Text(
                   'Complaint Submitted Successfully!',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.black87),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
                 const Text(
                   'We have received your complaint and will review it shortly.',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
@@ -57,26 +51,21 @@ class ComplaintSubmittedScreen extends StatelessWidget {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => StudentSidebarDashboard(
+                          builder: (_) => StudentSidebarDashboard(
                             studentId: studentId,
-                            studentName: studentId,
+                            studentName: studentName.isNotEmpty ? studentName : studentId,
+                            studentUsername: studentId, // ✅ fixed
                           ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF2B6CB0),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     child: const Text(
                       'Go to Dashboard',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ),
                 ),

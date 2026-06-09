@@ -1055,3 +1055,116 @@ def get_available_departments(request):
         'departments': unique_departments,
         'count': len(unique_departments)
     }, status=status.HTTP_200_OK)
+
+# ─────────────────────────────────────────────
+# Student notification endpoints
+# ─────────────────────────────────────────────
+
+@api_view(['GET'])
+def get_student_notifications(request, student_id):
+    """Return all notifications for a student, newest first."""
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({'success': False, 'message': 'Student not found'}, status=404)
+
+    notifications = Notification.objects.filter(
+        student=student
+    ).order_by('-created_at')[:50]
+
+    data = [
+        {
+            'id': n.pk,
+            'message': n.message,
+            'is_read': n.is_read,
+            'created_at': n.created_at.strftime('%b %d, %Y  %H:%M'),
+        }
+        for n in notifications
+    ]
+
+    unread_count = sum(1 for n in data if not n['is_read'])
+
+    return Response({
+        'success': True,
+        'notifications': data,
+        'count': len(data),
+        'unread_count': unread_count,
+    })
+
+
+@api_view(['POST'])
+def mark_student_notification_read(request, notification_id):
+    """Mark a single student notification as read."""
+    try:
+        notification = Notification.objects.get(pk=notification_id)
+        notification.is_read = True
+        notification.save(update_fields=['is_read'])
+        return Response({'success': True})
+    except Notification.DoesNotExist:
+        return Response({'success': False, 'message': 'Notification not found'}, status=404)
+
+
+@api_view(['POST'])
+def mark_all_student_notifications_read(request, student_id):
+    """Mark all notifications for a student as read."""
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({'success': False, 'message': 'Student not found'}, status=404)
+
+    updated = Notification.objects.filter(student=student, is_read=False).update(is_read=True)
+    return Response({'success': True, 'updated': updated})
+
+
+# Add these functions at the VERY END of your views.py file (after all existing code)
+
+# ─────────────────────────────────────────────
+# Student resolved/rejected count endpoints (for badge notifications)
+# ─────────────────────────────────────────────
+
+@api_view(['GET'])
+def get_student_resolved_count(request, student_id):
+    """Get count of newly resolved complaints for a student (last 7 days)"""
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({'count': 0})
+    
+    week_ago = timezone.now() - timezone.timedelta(days=7)
+    count = Complaint.objects.filter(
+        student=student,
+        status='resolved',
+        resolved_at__gte=week_ago
+    ).count()
+    
+    return Response({'count': count})
+
+
+@api_view(['GET'])
+def get_student_rejected_count(request, student_id):
+    """Get count of newly rejected complaints for a student (last 7 days)"""
+    try:
+        student = Student.objects.get(student_id=student_id)
+    except Student.DoesNotExist:
+        return Response({'count': 0})
+    
+    week_ago = timezone.now() - timezone.timedelta(days=7)
+    count = Complaint.objects.filter(
+        student=student,
+        status='rejected',
+        rejected_at__gte=week_ago
+    ).count()
+    
+    return Response({'count': count})
+
+
+@api_view(['GET'])
+def mark_student_resolved_seen(request, student_id):
+    """Mark resolved complaints as seen for a student"""
+    try:
+        student = Student.objects.get(student_id=student_id)
+        # For now, just return success
+        # You can implement a model to track seen status if needed
+        return Response({'success': True})
+    except Student.DoesNotExist:
+        return Response({'success': False}, status=404)
