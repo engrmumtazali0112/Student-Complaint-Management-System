@@ -1,8 +1,9 @@
 import 'dart:convert';
-import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
+import '../student/student_sidebar_dashboard.dart';
 
 class SubmitComplaintScreen extends StatefulWidget {
   final String studentId;
@@ -19,8 +20,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   
   String? selectedComplaintType;
   String? selectedAdminType;
-  File? selectedFile;
+  Uint8List? selectedFileBytes;
   String? fileName;
+  String? fileMimeType;
   
   bool isLoading = false;
   bool isLoadingDepartments = true;
@@ -91,17 +93,42 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+        withData: true, // required for Flutter Web
       );
-      
+
       if (result != null && mounted) {
+        final file = result.files.single;
+        if (file.bytes == null) {
+          _showErrorSnackBar('Could not read file. Please try again.');
+          return;
+        }
         setState(() {
-          selectedFile = File(result.files.single.path!);
-          fileName = result.files.single.name;
+          selectedFileBytes = file.bytes;
+          fileName = file.name;
+          fileMimeType = _getMimeType(file.extension ?? '');
         });
         _showSuccessSnackBar('File attached successfully');
       }
     } catch (e) {
       _showErrorSnackBar('Error picking file: $e');
+    }
+  }
+
+  String _getMimeType(String extension) {
+    switch (extension.toLowerCase()) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'pdf':
+        return 'application/pdf';
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      default:
+        return 'application/octet-stream';
     }
   }
 
@@ -142,11 +169,11 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       request.fields['description'] = descriptionController.text.trim();
       request.fields['admin_type'] = selectedAdminType!;
       
-      if (selectedFile != null) {
+      if (selectedFileBytes != null && fileName != null) {
         request.files.add(
-          await http.MultipartFile.fromPath(
+          http.MultipartFile.fromBytes(
             'attachment',
-            selectedFile!.path,
+            selectedFileBytes!,
             filename: fileName,
           ),
         );
@@ -166,11 +193,22 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
           descriptionController.clear();
           setState(() {
             selectedComplaintType = null;
-            selectedFile = null;
+            selectedFileBytes = null;
             fileName = null;
+            fileMimeType = null;
           });
-          
-          Navigator.pop(context, true);
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StudentSidebarDashboard(
+                studentId: widget.studentId,
+                studentName: widget.studentId,
+                studentUsername: widget.studentId,
+              ),
+            ),
+            (route) => false, // clears the entire back stack
+          );
         } else {
           _showErrorSnackBar(data['message'] ?? 'Submission failed');
         }
@@ -451,8 +489,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                                           icon: const Icon(Icons.close, size: 20),
                                           onPressed: () {
                                             setState(() {
-                                              selectedFile = null;
+                                              selectedFileBytes = null;
                                               fileName = null;
+                                              fileMimeType = null;
                                             });
                                           },
                                         ),
