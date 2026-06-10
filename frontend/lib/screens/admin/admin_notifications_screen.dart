@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../shared/welcome.dart'; // optional, for back button
+// optional, for back button
 
 class AdminNotificationsScreen extends StatefulWidget {
   final String adminType;
