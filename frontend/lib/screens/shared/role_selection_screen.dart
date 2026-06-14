@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../student/student_login.dart';
 import '../admin/admin_login.dart';
+import '../super_admin/super_admin_login.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -14,10 +15,10 @@ class RoleSelectionScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.black87),
-          onPressed: () => Navigator.pop(context), // fixed
+          onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: SingleChildScrollView( // prevents overflow
+      body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -44,7 +45,7 @@ class RoleSelectionScreen extends StatelessWidget {
             const SizedBox(height: 40),
 
             // Student Card
-            RoleCard(
+            _buildRoleCard(
               icon: Icons.school,
               iconColor: Colors.blue,
               title: "Student Portal",
@@ -54,22 +55,38 @@ class RoleSelectionScreen extends StatelessWidget {
                   context,
                   MaterialPageRoute(builder: (context) => const StudentLoginScreen()),
                 );
-                // Navigate to Student Screen
-                // Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentScreen()));
               },
             ),
 
             const SizedBox(height: 25),
 
             // Admin Card
-            RoleCard(
+            _buildRoleCard(
               icon: Icons.security,
               iconColor: Colors.purple,
               title: "Admin Portal",
               subtitle: "Manage and resolve complaints",
               onPressed: () {
-                // Navigate to Admin Screen
-                 Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminLoginScreen()));
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
+                );
+              },
+            ),
+
+            const SizedBox(height: 25),
+
+            // Super Admin Card
+            _buildRoleCard(
+              icon: Icons.admin_panel_settings,
+              iconColor: const Color(0xFF1565C0),
+              title: "Super Admin Portal",
+              subtitle: "System-wide analytics and management",
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SuperAdminLoginScreen()),
+                );
               },
             ),
           ],
@@ -77,27 +94,14 @@ class RoleSelectionScreen extends StatelessWidget {
       ),
     );
   }
-}
 
-// Reusable card widget
-class RoleCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final VoidCallback onPressed;
-
-  const RoleCard({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.onPressed,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildRoleCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -107,7 +111,7 @@ class RoleCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black12.withAlpha(13), // fixed deprecated opacity
+            color: Colors.black12.withAlpha(13),
             blurRadius: 8,
             offset: const Offset(0, 3),
           ),
@@ -119,7 +123,7 @@ class RoleCard extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: iconColor.withAlpha(26), // fixed deprecated opacity
+              color: iconColor.withAlpha(26),
             ),
             child: Icon(icon, color: iconColor, size: 32),
           ),
@@ -146,7 +150,7 @@ class RoleCard extends StatelessWidget {
             width: 140,
             height: 42,
             child: ElevatedButton(
-              onPressed: onPressed, // fixed
+              onPressed: onPressed,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF007BFF),
                 shape: RoundedRectangleBorder(
