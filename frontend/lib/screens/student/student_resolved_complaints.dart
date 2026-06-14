@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'student_rate_admin_screen.dart';
 
 class StudentResolvedComplaintsScreen extends StatefulWidget {
   final String studentId;
@@ -18,6 +19,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
   List<dynamic> complaints = [];
   bool isLoading = true;
   String searchQuery = '';
+  Map<int, bool> ratedStatus = {};
 
   @override
   void initState() {
@@ -33,10 +35,6 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
         headers: {'Content-Type': 'application/json'},
       );
 
-      // Use debugPrint instead of print (or remove completely)
-      debugPrint("Response status: ${response.statusCode}");
-      debugPrint("Response body: ${response.body}");
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (mounted) {
@@ -45,6 +43,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
               complaints = data['data'] as List;
               isLoading = false;
             });
+            await _checkRatingsStatus();
           } else {
             setState(() => isLoading = false);
           }
@@ -52,24 +51,33 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
       } else {
         if (mounted) {
           setState(() => isLoading = false);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("Failed to load resolved complaints: ${response.statusCode}"),
-              backgroundColor: Colors.red,
-            ),
-          );
         }
       }
     } catch (e) {
       debugPrint("Error fetching resolved complaints: $e");
       if (mounted) {
         setState(() => isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Connection error: $e"),
-            backgroundColor: Colors.red,
-          ),
+      }
+    }
+  }
+
+  Future<void> _checkRatingsStatus() async {
+    for (var complaint in complaints) {
+      final id = complaint['id'];
+      try {
+        final response = await http.get(
+          Uri.parse('http://127.0.0.1:8000/api/student/complaint-rating/$id/'),
         );
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          if (mounted) {
+            setState(() {
+              ratedStatus[id] = data['has_rated'] == true;
+            });
+          }
+        }
+      } catch (e) {
+        debugPrint("Error checking rating for complaint $id: $e");
       }
     }
   }
@@ -119,7 +127,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.grey.withAlpha(30),
+                    color: Colors.grey.withValues(alpha: 0.3),
                     blurRadius: 10,
                   ),
                 ],
@@ -160,7 +168,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(51),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -260,6 +268,9 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
   }
 
   Widget _buildComplaintCard(dynamic complaint) {
+    final complaintId = complaint['id'];
+    final isRated = ratedStatus[complaintId] ?? false;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -267,7 +278,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(30),
+            color: Colors.grey.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -288,7 +299,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(26),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(
@@ -311,7 +322,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(26),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -360,7 +371,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withAlpha(13),
+                    color: Colors.green.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -380,6 +391,72 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                     ],
                   ),
                 ),
+                const SizedBox(height: 12),
+                // Rate Admin Button
+                if (!isRated)
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudentRateAdminScreen(
+                              complaintId: complaintId,
+                              complaintTitle: complaint['title'] ?? complaint['complaint_type'] ?? 'Complaint',
+                            ),
+                          ),
+                        );
+                        if (result == true) {
+                          setState(() {
+                            ratedStatus[complaintId] = true;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Thank you for your rating!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.star_rate, size: 18),
+                      label: const Text(
+                        'Rate Admin Performance',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFF59E0B),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (isRated)
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.star, size: 16, color: Colors.amber),
+                        SizedBox(width: 4),
+                        Text(
+                          'Already Rated',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
@@ -424,7 +501,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: Colors.green.withAlpha(26),
+                        color: Colors.green.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: const Icon(
@@ -483,7 +560,7 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.green.withAlpha(26),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -559,14 +636,14 @@ class _StudentResolvedComplaintsScreenState extends State<StudentResolvedComplai
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: const Color.fromARGB(255, 240, 237, 237),
+                color: Colors.grey.shade600,
               ),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 13, color: Color.fromARGB(255, 33, 124, 63)),
+              style: const TextStyle(fontSize: 13, color: Color(0xFF1A365D)),
             ),
           ),
         ],
