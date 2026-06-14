@@ -23,6 +23,7 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
   List complaints = [];
   List filteredComplaints = [];
   bool isLoading = true;
+  Map<int, Map<String, dynamic>> ratingData = {};
 
   @override
   void initState() {
@@ -54,11 +55,40 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
           filteredComplaints = filtered;
           isLoading = false;
         });
+        
+        // Fetch ratings for resolved complaints
+        await _fetchRatingsForResolved();
       } else {
         setState(() => isLoading = false);
       }
     } catch (e) {
       setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> _fetchRatingsForResolved() async {
+    for (var complaint in complaints) {
+      if (complaint['status'] == 'resolved') {
+        final id = complaint['id'];
+        try {
+          final response = await http.get(
+            Uri.parse('http://127.0.0.1:8000/api/student/complaint-rating/$id/'),
+          );
+          if (response.statusCode == 200 && mounted) {
+            final data = json.decode(response.body);
+            if (data['has_rated'] == true) {
+              setState(() {
+                ratingData[id] = {
+                  'rating': data['rating'],
+                  'comment': data['comment'] ?? '',
+                };
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint('Error fetching rating: $e');
+        }
+      }
     }
   }
 
@@ -96,7 +126,6 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
     }
   }
 
-  // ✅ Show rejection dialog
   Future<void> showRejectDialog(int id, String title) async {
     final TextEditingController remarksController = TextEditingController();
     
@@ -185,7 +214,6 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
     );
   }
 
-  // ✅ Reject complaint with remarks
   Future<void> rejectComplaint(int id, String remarks) async {
     final url = Uri.parse('http://127.0.0.1:8000/api/admin/complaint/reject/$id/');
     try {
@@ -231,6 +259,13 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Calculate stats for resolved complaints
+    final resolvedComplaints = complaints.where((c) => c['status'] == 'resolved').toList();
+    final ratedCount = ratingData.values.where((r) => r['rating'] != null).length;
+    final avgRating = ratedCount > 0 
+        ? ratingData.values.map((r) => r['rating'] as int).reduce((a, b) => a + b) / ratedCount
+        : 0.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4F8),
       appBar: AppBar(
@@ -278,7 +313,7 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Stats
+            // Stats Row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -290,6 +325,28 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
                     color: Color(0xFF1A365D),
                   ),
                 ),
+                if (widget.filter == 'resolved' && resolvedComplaints.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withAlpha(20),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          "Avg: ${avgRating.toStringAsFixed(1)}",
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.amber,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.star, size: 14, color: Colors.amber),
+                      ],
+                    ),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
@@ -336,6 +393,8 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
     final isResolved = status.toLowerCase() == 'resolved';
     final isPending = status.toLowerCase() == 'pending';
     final isRejected = status.toLowerCase() == 'rejected';
+    final hasRating = ratingData[id] != null;
+    final rating = hasRating ? ratingData[id]!['rating'] as int : 0;
 
     Color statusColor = getStatusColor(status);
     IconData statusIcon = Icons.pending;
@@ -410,6 +469,47 @@ class _AdminRoleComplaintsScreenState extends State<AdminRoleComplaintsScreen> {
                 style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
               ),
             ],
+            
+            // ✅ Rating Stars for Resolved Complaints
+            if (isResolved) ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: hasRating ? Colors.amber.withAlpha(20) : Colors.grey.withAlpha(10),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (hasRating) ...[
+                      ...List.generate(5, (i) => Icon(
+                        i < rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 14,
+                      )),
+                      const SizedBox(width: 6),
+                      Text(
+                        "$rating/5",
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.amber.shade800,
+                        ),
+                      ),
+                    ] else ...[
+                      const Icon(Icons.star_outline, color: Colors.grey, size: 14),
+                      const SizedBox(width: 6),
+                      Text(
+                        "Not rated yet",
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            
             const SizedBox(height: 12),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
