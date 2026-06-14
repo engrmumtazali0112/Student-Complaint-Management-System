@@ -1,21 +1,38 @@
-# 🎓 Student Complaint Management System
-
 <div align="center">
 
+<!-- Animated Banner -->
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1a73e8,100:0d47a1&height=200&section=header&text=Student%20Complaint%20Management%20System&fontSize=36&fontColor=ffffff&animation=fadeIn&fontAlignY=38&desc=Empowering%20Students%20%7C%20Enabling%20Admins%20%7C%20Ensuring%20Accountability&descAlignY=60&descSize=16" width="100%"/>
+
+<br/>
+
+<!-- Animated Typing Effect Badge -->
+[![Typing SVG](https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&pause=800&color=1A73E8&center=true&vCenter=true&width=700&lines=🎓+Full-Stack+University+Complaint+Platform;📱+Flutter+%2B+Django+%2B+PostgreSQL;👑+Multi-Role+Admin+System;⭐+Smart+Escalation+%26+Rating+Engine)](https://git.io/typing-svg)
+
+<br/>
+
+<!-- Tech Stack Badges -->
 [![Flutter](https://img.shields.io/badge/Flutter-3.27.0-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Django](https://img.shields.io/badge/Django-6.0.5-092E20?style=for-the-badge&logo=django&logoColor=white)](https://www.djangoproject.com/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.4-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![DRF](https://img.shields.io/badge/Django_REST-3.17.1-ff1709?style=for-the-badge&logo=django&logoColor=white)](https://www.django-rest-framework.org/)
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-brightgreen?style=for-the-badge)](CONTRIBUTING.md)
 
 <br/>
 
-> A full-stack complaint management platform built for universities — empowering students to raise concerns and enabling department admins to resolve them efficiently.
+<!-- Quick Stats -->
+![GitHub stars](https://img.shields.io/github/stars/engrmumtazali0112/Student-Complaint-Management-System?style=social)
+![GitHub forks](https://img.shields.io/github/forks/engrmumtazali0112/Student-Complaint-Management-System?style=social)
+![GitHub issues](https://img.shields.io/github/issues/engrmumtazali0112/Student-Complaint-Management-System)
+![Last Commit](https://img.shields.io/github/last-commit/engrmumtazali0112/Student-Complaint-Management-System)
 
 <br/>
 
-[📱 Features](#-features) · [🖼️ Demo](#%EF%B8%8F-demo) · [🏗️ Architecture](#%EF%B8%8F-architecture) · [🚀 Quick Start](#-quick-start) · [📋 API Docs](#-api-endpoints) · [🤝 Contributing](#-contributing)
+> ### 🏛️ A production-ready complaint management platform for universities
+> Empowering students to raise concerns · Enabling departments to resolve them efficiently · Providing Super Admin with complete system oversight
+
+<br/>
+
+[📱 Features](#-features) · [🖼️ Screenshots](#-screenshots) · [🏗️ Architecture](#️-architecture) · [🚀 Quick Start](#-quick-start) · [📋 API Docs](#-api-endpoints) · [👨‍💻 Author](#-author)
 
 </div>
 
@@ -23,24 +40,31 @@
 
 ## 📊 Portal Status
 
+<div align="center">
+
 | Portal | Status | Description |
-|--------|--------|-------------|
-| 🎓 Student Portal | ✅ Live | Submit, track, and manage complaints |
-| 🛡️ Admin Portal | ✅ Live | Role-based complaint management |
-| 🏠 Warden Portal | ✅ Live | Hostel & infrastructure complaints |
-| 📝 Examination Portal | ✅ Live | Exam-related issues |
-| 💰 Treasury Portal | ✅ Live | Fee & financial complaints |
-| 🔒 Security Portal | ✅ Live | Campus security issues |
-| 🚌 Transport Portal | ✅ Live | Transport complaints |
-| 📚 Library Portal | ✅ Live | Library-related issues |
-| 🏋️ Sports Portal | ✅ Live | Sports facility complaints |
-| 💻 IT Portal | ✅ Live | Lab & IT support issues |
+|:------:|:------:|:-----------:|
+| 🎓 Student Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Submit, track, and manage complaints |
+| 🛡️ Admin Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Role-based complaint management |
+| 👑 Super Admin | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Analytics dashboard & system oversight |
+| 🏠 Warden Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Hostel & infrastructure complaints |
+| 📝 Examination Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Exam-related issues |
+| 💰 Treasury Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Fee & financial complaints |
+| 🔒 Security Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Campus security issues |
+| 🚌 Transport Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Transport complaints |
+| 📚 Library Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Library-related issues |
+| 🏋️ Sports Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Sports facility complaints |
+| 💻 IT Portal | ![Live](https://img.shields.io/badge/Status-Live-brightgreen?style=flat-square) | Lab & IT support issues |
+
+</div>
 
 ---
 
 ## 🌟 Features
 
-### 👨‍🎓 Student Portal
+<details>
+<summary><b>👨‍🎓 Student Portal</b> — click to expand</summary>
+<br/>
 
 | Feature | Details |
 |---------|---------|
@@ -52,8 +76,13 @@
 | 🔔 **Notifications** | Instant in-app alerts on complaint status changes |
 | 📜 **Complaint History** | Full history with timestamps and resolution details |
 | 🖼️ **Profile Picture** | Upload and update profile picture during registration or from profile |
+| ⭐ **Admin Rating** | Rate admin performance (1-5 stars) after complaint resolution |
 
-### 👨‍💼 Admin Portal
+</details>
+
+<details>
+<summary><b>👨‍💼 Admin Portal</b> — click to expand</summary>
+<br/>
 
 | Feature | Details |
 |---------|---------|
@@ -63,47 +92,172 @@
 | 🔍 **Search & Filter** | Find complaints by ID, title, student name, or type |
 | 🔔 **Auto-Notifications** | Students are automatically notified on any status change |
 | 👤 **Profile Management** | View, manage, and update department admin profile picture |
+| ⭐ **Performance Ratings** | View ratings received from students |
+
+</details>
+
+<details>
+<summary><b>👑 Super Admin Dashboard</b> — click to expand</summary>
+<br/>
+
+| Feature | Details |
+|---------|---------|
+| 📈 **Analytics Dashboard** | Interactive graphs and charts for complaint statistics |
+| 📊 **Overall Statistics** | Total, Pending, Resolved, Rejected counts across all departments |
+| 🏢 **Department Analytics** | Department-wise complaint breakdown with performance metrics |
+| 📉 **Daily Trends** | 30-day time-series visualization of complaint activity |
+| ⚠️ **Escalation Management** | View and manage complaints escalated due to delays |
+| 🔄 **Reassign Complaints** | Reassign escalated complaints to different departments |
+| ⭐ **Admin Ratings Overview** | View aggregated admin performance ratings |
+| 📋 **Rating Details** | See individual student feedback and ratings per complaint |
+
+</details>
+
+<details>
+<summary><b>⚡ Automatic Escalation System</b> — click to expand</summary>
+<br/>
+
+| Feature | Details |
+|---------|---------|
+| ⏰ **Auto-Escalation** | Complaints pending for 2+ days are automatically escalated to Super Admin |
+| 📢 **Student Notification** | Students are notified when their complaint is escalated |
+| 🔧 **Configurable Threshold** | Escalation time threshold can be configured (default: 2 days) |
+| 🔄 **Reassignment** | Super Admin can reassign escalated complaints to appropriate departments |
+| ✅ **Direct Resolution** | Super Admin can resolve escalated complaints directly |
+
+</details>
+
+<details>
+<summary><b>⭐ Admin Rating System</b> — click to expand</summary>
+<br/>
+
+| Feature | Details |
+|---------|---------|
+| ⭐ **5-Star Rating** | Students rate admin performance after complaint resolution |
+| 📝 **Optional Comments** | Students can provide detailed feedback |
+| 📊 **Rating Criteria** | Rate based on Resolution Quality, Response Time, and Professionalism |
+| 👑 **Super Admin Visibility** | All ratings visible to Super Admin for performance evaluation |
+| 📈 **Performance Analytics** | Average rating per department calculated automatically |
+
+</details>
 
 ---
 
-## 🖼️ Demo
+## 🖼️ Screenshots
 
-### Welcome & Role Selection
+### 👨‍🎓 Student Portal
 
-| Welcome Screen | Role Selection |
-|:--------------:|:--------------:|
-| ![Welcome Screen](demo/1.PNG) | ![Role Selection](demo/2.PNG) |
+<div align="center">
 
-> **Welcome Screen** — Highlights platform features: Easy Complaint Submission, Real-time Status Tracking, and Secure & Confidential access. **Role Selection** — Users choose between the Student Portal and Admin Portal.
+#### 📋 Student Profile & Dashboard
+> View your complaint statistics, personal details, and update your profile picture at a glance.
 
----
-
-### Student Portal
-
-| Student Login | Student Profile & Dashboard |
-|:-------------:|:---------------------------:|
-| ![Student Login](demo/3.PNG) | ![Student Profile](demo/4.PNG) |
-
-| Profile Details & Notifications | Track Complaints |
-|:--------------------------------:|:----------------:|
-| ![Profile Details](demo/5.PNG) | ![Track Complaints](demo/6.PNG) |
-
-> **Student Login** — Secure authentication using university roll number (e.g. `CS-06F/22-26`).  
-> **Profile & Dashboard** — Sidebar with complaint stats (Total / Pending / Resolved / Rejected), profile picture upload, and full personal details.  
-> **Notifications** — Real-time alerts when a complaint status changes (e.g. resolved, rejected).  
-> **Track Complaints** — Search and filter complaints by title, status, or ID with live counters.
+![Student Profile](demo/sp.PNG)
 
 ---
 
-### Admin Portal
+#### 📝 Submit a Complaint
+> Fill in the complaint title, type, target department, description, and optionally attach supporting files.
 
-| Admin Login | Admin Profile & Dashboard | Pending Complaints |
-|:-----------:|:-------------------------:|:------------------:|
-| ![Admin Login](demo/7.PNG) | ![Admin Dashboard](demo/8.PNG) | ![Pending Complaints](demo/9.PNG) |
+![Submit Complaint](demo/ssc.PNG)
 
-> **Admin Login** — Dark-themed secure portal for authorized personnel only.  
-> **Admin Dashboard** — Role-based profile (e.g. Hostel Manager), complaint stats, and sidebar navigation across All / Pending / Resolved / Rejected views.  
-> **Pending Complaints** — Searchable list with status badges (RESOLVED / REJECTED), student name, roll number, and date — with one-click detail view.
+---
+
+#### 🔎 Track Complaints
+> Monitor all your submitted complaints in real-time — search by title, status, or complaint ID.
+
+![Track Complaints](demo/tc.PNG)
+
+---
+
+#### ✅ Resolved Complaints
+> See all resolved complaints with resolution dates, and rate admin performance directly from this screen.
+
+![Resolved Complaints](demo/srec.PNG)
+
+---
+
+#### 📄 Resolved Complaint Detail View
+> Full details of a resolved complaint — ID, type, department, submitted/resolved dates, and resolution status.
+
+![Resolved Complaint Review](demo/ResComplaintReviev.PNG)
+
+---
+
+#### ❌ Rejected Complaints
+> View rejected complaints with the admin's rejection reason and a link to full details.
+
+![Rejected Complaints](demo/src.PNG)
+
+---
+
+#### ⭐ Rate Admin Performance
+> After a complaint is resolved, rate the admin on a 5-star scale across Resolution Quality, Response Time, and Professionalism.
+
+![Student Resolved](demo/sres.PNG)
+
+</div>
+
+---
+
+### 🛡️ Admin Portal
+
+<div align="center">
+
+#### 📊 Admin Dashboard — All Complaints
+> Sidebar stats (Total / Pending / Resolved / Rejected) with a searchable complaint list and one-click Resolve / Reject buttons.
+
+![Admin All Complaints](demo/aac.PNG)
+
+---
+
+#### 🔔 Admin Notifications
+> Real-time notification feed showing new complaint submissions and resolution confirmations.
+
+![Admin Notifications](demo/an.PNG)
+
+---
+
+#### ⏳ Pending Complaints
+> Dedicated pending queue for quick action — resolve or reject with a single click.
+
+![Admin Pending Complaints](demo/apc.PNG)
+
+---
+
+#### ✅ Admin Resolved Complaints
+> All resolved complaints with star ratings received from students and average score displayed.
+
+![Admin Resolved Complaints](demo/arec.PNG)
+
+</div>
+
+---
+
+### 👑 Super Admin Dashboard
+
+<div align="center">
+
+#### 📈 Super Admin Overview & Department Analytics
+> System-wide stats with a stacked bar chart breaking down Pending / Resolved / Rejected per department, plus per-department detail cards with complaint type breakdown.
+
+![Super Admin Dashboard](demo/sadashboard.PNG)
+
+---
+
+#### 👤 Super Admin Profile
+> Super Admin profile card with aggregated system statistics (Total, Pending, Resolved).
+
+![Super Admin Profile](demo/superadmin.PNG)
+
+---
+
+#### ⭐ Admin Ratings Overview
+> System-wide admin rating leaderboard — overall average, per-admin scores, student feedback, and department filter.
+
+![Super Admin Ratings](demo/sarateing.PNG)
+
+</div>
 
 ---
 
@@ -111,26 +265,30 @@
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│                     Flutter Frontend                         │
-│         Student Portal  ·  10× Admin Portals                 │
+│                      Flutter Frontend                        │
+│       Student Portal · Admin Portal · Super Admin Dashboard  │
 └─────────────────────────┬────────────────────────────────────┘
-                          │  HTTP / REST
+                          │ HTTP / REST
                           ▼
 ┌──────────────────────────────────────────────────────────────┐
-│                   Django REST API                            │
-│      Authentication  ·  CRUD  ·  Signals  ·  File Uploads   │
+│                    Django REST API                           │
+│     Authentication · CRUD · Signals · File Uploads          │
+│     Auto-Escalation · Rating System · Analytics             │
 └─────────────────────────┬────────────────────────────────────┘
-                          │  psycopg2
+                          │ psycopg2
                           ▼
 ┌──────────────────────────────────────────────────────────────┐
 │                   PostgreSQL Database                        │
-│          Students  ·  Complaints  ·  AdminProfiles           │
+│   Students · Complaints · AdminProfiles · Notifications      │
+│   EscalationLog · AdminRating · SuperAdmin                   │
 └──────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
 ## 🔐 Multi-Role Admin System
+
+<div align="center">
 
 | Role | Department | Handles |
 |------|------------|---------|
@@ -145,37 +303,45 @@
 | `sports` | Sports | Sports facilities |
 | `it` | IT Department | Lab & IT support |
 
-> Each admin account only sees complaints directed to their department — full role isolation.
+</div>
+
+> 🔒 Each admin account only sees complaints directed to their department — **full role isolation**.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
+<div align="center">
 
+### Frontend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Flutter | 3.27.0 | Cross-platform UI framework |
-| Dart | 3.9.2 | Programming language |
+| ![Flutter](https://img.shields.io/badge/-Flutter-02569B?logo=flutter&logoColor=white) Flutter | 3.27.0 | Cross-platform UI framework |
+| ![Dart](https://img.shields.io/badge/-Dart-0175C2?logo=dart&logoColor=white) Dart | 3.9.2 | Programming language |
 | `http` | 1.1.0 | REST API communication |
-| `file_picker` | 8.0.0 | File upload support |
-| `image_picker` | Latest | Profile picture selection |
+| `file_picker` | 8.0.0 | File upload support (Web & Mobile) |
+| `shared_preferences` | 2.5.5 | Local storage for user sessions |
+| `fl_chart` | 0.68.0 | Charts and graphs for analytics |
 
 ### Backend
-
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Python | 3.14+ | Server-side language |
-| Django | 6.0.5 | Web framework |
-| Django REST Framework | 3.17.1 | API layer |
-| PostgreSQL | 18.4 | Primary database |
+| ![Python](https://img.shields.io/badge/-Python-3776AB?logo=python&logoColor=white) Python | 3.14+ | Server-side language |
+| ![Django](https://img.shields.io/badge/-Django-092E20?logo=django&logoColor=white) Django | 6.0.5 | Web framework |
+| ![DRF](https://img.shields.io/badge/-Django_REST-ff1709?logo=django&logoColor=white) DRF | 3.17.1 | API layer |
+| ![PostgreSQL](https://img.shields.io/badge/-PostgreSQL-4169E1?logo=postgresql&logoColor=white) PostgreSQL | 18.4 | Primary database |
 | `psycopg2-binary` | Latest | PostgreSQL adapter |
+| `django-cors-headers` | Latest | CORS handling |
+
+</div>
 
 ---
 
 ## 📋 API Endpoints
 
-### 🎓 Student Endpoints
+<details>
+<summary><b>🎓 Student Endpoints</b></summary>
+<br/>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -186,9 +352,14 @@
 | `GET` | `/api/student/complaint/track/<student_id>/` | Track all complaints |
 | `GET` | `/api/student/complaint/<student_id>/<complaint_id>/` | Complaint detail view |
 | `GET` | `/api/student/profile/<student_id>/` | Get student profile with stats |
-| `POST` | `/api/student/profile/upload-pic/<student_id>/` | Upload student profile picture |
+| `POST` | `/api/student/upload-profile-pic/` | Upload student profile picture |
+| `POST` | `/api/student/rate-admin/<complaint_id>/` | Rate admin performance |
 
-### 🛡️ Admin Endpoints
+</details>
+
+<details>
+<summary><b>🛡️ Admin Endpoints</b></summary>
+<br/>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -200,16 +371,26 @@
 | `GET` | `/api/admin/complaint/rejected/` | All rejected complaints |
 | `PATCH` | `/api/admin/complaint/update-status/<id>/` | Update complaint status |
 | `POST` | `/api/admin/complaint/reject/<id>/` | Reject with remarks |
-| `GET` | `/api/admin/new-count/` | Unseen complaint count |
-| `POST` | `/api/admin/mark-seen/` | Mark complaints as seen |
+| `GET` | `/api/admin/notifications/` | Admin notifications |
 | `GET` | `/api/admin/profile/<admin_id>/` | Get admin profile |
-| `POST` | `/api/admin/profile/upload-pic/<admin_id>/` | Upload admin profile picture |
+| `POST` | `/api/admin/upload-profile-pic/` | Upload admin profile picture |
 
-### 🔗 Shared Endpoint
+</details>
+
+<details>
+<summary><b>👑 Super Admin Endpoints</b></summary>
+<br/>
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/complaint/<complaint_id>/` | Direct complaint lookup by ID |
+| `POST` | `/api/super-admin/login/` | Super Admin authentication |
+| `GET` | `/api/super-admin/stats/` | Comprehensive analytics dashboard data |
+| `GET` | `/api/super-admin/escalated/` | Get all escalated complaints |
+| `POST` | `/api/super-admin/reassign/<id>/` | Reassign escalated complaint |
+| `POST` | `/api/super-admin/resolve/<id>/` | Resolve escalated complaint |
+| `GET` | `/api/super-admin/admin-ratings/` | Get all admin ratings |
+
+</details>
 
 ---
 
@@ -217,10 +398,10 @@
 
 ### Prerequisites
 
-- **Flutter SDK** 3.27.0+
-- **Python** 3.14+
-- **PostgreSQL** 18.4+
-- **Git**
+![Flutter](https://img.shields.io/badge/Flutter_SDK-3.27.0+-02569B?logo=flutter)
+![Python](https://img.shields.io/badge/Python-3.14+-3776AB?logo=python)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18.4+-4169E1?logo=postgresql)
+![Git](https://img.shields.io/badge/Git-Latest-F05032?logo=git)
 
 ---
 
@@ -301,25 +482,55 @@ python manage.py shell
 
 ```python
 from django.contrib.auth.models import User
-from api.models import AdminProfile
+from api.models import AdminProfile, SuperAdmin
 
 admins = [
-    ('admin',    'admin123',    'Administration', 'administration'),
-    ('warden',   'warden123',   'Warden',         'warden'),
-    ('exam',     'exam123',     'Examination',    'examination'),
-    ('treasury', 'treasury123', 'Treasury',       'treasury'),
-    ('security', 'security123', 'Security',       'security'),
-    ('transport','transport123','Transport',      'transport'),
-    ('library',  'library123',  'Library',        'library'),
-    ('hostel',   'hostel123',   'Hostel',         'hostel'),
-    ('sports',   'sports123',   'Sports',         'sports'),
-    ('it',       'it123',       'IT Department',  'it'),
+    ('admin',     'admin123',     'Administration', 'administration'),
+    ('warden',    'warden123',    'Warden',         'warden'),
+    ('exam',      'exam123',      'Examination',    'examination'),
+    ('treasury',  'treasury123',  'Treasury',       'treasury'),
+    ('security',  'security123',  'Security',       'security'),
+    ('transport', 'transport123', 'Transport',      'transport'),
+    ('library',   'library123',   'Library',        'library'),
+    ('hostel',    'hostel123',    'Hostel',         'hostel'),
+    ('sports',    'sports123',    'Sports',         'sports'),
+    ('it',        'it123',        'IT Department',  'it'),
 ]
 
 for username, password, name, role in admins:
-    user = User.objects.create_user(username=username, password=password, first_name=name)
+    user = User.objects.create_user(username=username, password=password, first_name=name, is_staff=True)
     AdminProfile.objects.create(user=user, role=role)
     print(f"✅ Created {role}: {username}")
+
+# Create Super Admin
+super_admin_user = User.objects.create_user(
+    username='superadmin',
+    password='superadmin123',
+    is_staff=True,
+    is_superuser=True
+)
+SuperAdmin.objects.create(user=super_admin_user)
+print("✅ Created Super Admin: superadmin")
+```
+
+---
+
+### ⚙️ Auto-Escalation Setup
+
+**Run Manually:**
+```bash
+python manage.py escalate_complaints --threshold 2
+```
+
+**Schedule with Cron (Linux/macOS):**
+```bash
+# Run every 6 hours
+0 */6 * * * cd /path/to/backend && python manage.py escalate_complaints
+```
+
+**Schedule with Task Scheduler (Windows):**
+```powershell
+schtasks /create /tn "EscalateComplaints" /tr "python D:\path\to\backend\manage.py escalate_complaints" /sc hourly /mo 6
 ```
 
 ---
@@ -329,100 +540,122 @@ for username, password, name, role in admins:
 ```
 Student-Complaint-Management-System/
 │
-├── backend/
-│   ├── config/
+├── 📂 backend/
+│   ├── 📂 config/
 │   │   ├── settings.py          # Django configuration
-│   │   ├── urls.py              # Root URL routing
-│   │   └── asgi.py              # ASGI entry point
+│   │   └── urls.py              # Root URL routing
 │   │
-│   └── api/
+│   └── 📂 api/
 │       ├── models.py            # Student, Complaint, AdminProfile, Notification
 │       ├── views.py             # All API view logic
-│       ├── serializers.py       # DRF serializers
 │       ├── urls.py              # API URL patterns
-│       ├── admin.py             # Django admin config
-│       ├── apps.py              # App config + signal registration
-│       └── signals.py           # Auto-notification on complaint updates
+│       ├── serializers.py       # DRF serializers
+│       ├── signals.py           # Auto-notification on complaint updates
+│       └── 📂 management/
+│           └── 📂 commands/
+│               └── escalate_complaints.py
 │
-├── frontend/
-│   ├── pubspec.yaml
-│   └── lib/
-│       └── screens/
-│           ├── welcome.dart                       # Landing page
-│           ├── role_selection_screen.dart         # Student or Admin entry
-│           ├── student_login.dart
-│           ├── student_register.dart              # Registration with profile picture
-│           ├── student_sidebar_dashboard.dart     # Sidebar + stats + profile
-│           ├── student_profile_screen.dart        # Profile picture upload
-│           ├── submit_complaint.dart
-│           ├── track_complains.dart
-│           ├── view_complains.dart                # Complaint detail with remarks
-│           ├── solved_complaints.dart
-│           ├── admin_portal.dart                  # Admin login
-│           ├── admin_register.dart                # Registration with profile picture
-│           ├── admin_sidebar_dashboard.dart       # Sidebar + notifications tab
-│           ├── pending_complaints.dart
-│           ├── admin_role_rejected_complaints.dart
-│           └── confirmation.dart
+├── 📂 frontend/
+│   ├── 📂 lib/
+│   │   ├── 📂 constants/
+│   │   │   └── api_constants.dart
+│   │   └── 📂 screens/
+│   │       ├── 📂 student/      # Student portal screens
+│   │       ├── 📂 admin/        # Admin portal screens
+│   │       ├── 📂 super_admin/  # Super Admin screens
+│   │       └── 📂 shared/       # Shared screens
+│   └── pubspec.yaml
 │
-└── demo/
-    ├── 1.PNG    # Welcome screen
-    ├── 2.PNG    # Role selection
-    ├── 3.PNG    # Student login
-    ├── 4.PNG    # Student profile & dashboard
-    ├── 5.PNG    # Profile details & notifications
-    ├── 6.PNG    # Track complaints
-    ├── 7.PNG    # Admin login
-    ├── 8.PNG    # Admin profile & dashboard
-    └── 9.PNG    # Pending complaints management
+└── 📂 demo/                     # 📸 Demo screenshots
 ```
 
 ---
 
 ## 🗄️ Database Schema
 
-### Student
+<details>
+<summary><b>Student</b></summary>
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `student_id` | `CharField(20)` | Unique; format `CS-06F/22-26` |
-| `name` | `CharField(100)` | Full name |
-| `father_name` | `CharField(100)` | Father's name |
-| `department` | `CharField(100)` | Academic department |
-| `session` | `CharField(50)` | Academic session |
-| `profile_picture` | `ImageField` | Optional profile photo |
-| `user` | `OneToOneField(User)` | Linked Django auth user |
+| `student_id` | CharField(20) | Unique; format CS-06F/22-26 |
+| `name` | CharField(100) | Full name |
+| `father_name` | CharField(100) | Father's name |
+| `department` | CharField(100) | Academic department |
+| `session` | CharField(50) | Academic session |
+| `profile_picture` | ImageField | Optional profile photo |
+| `user` | OneToOneField(User) | Linked Django auth user |
 
-### Complaint
+</details>
 
-| Field | Type | Notes |
-|-------|------|-------|
-| `student` | `ForeignKey(Student)` | Complaint owner |
-| `title` | `CharField(200)` | Short title |
-| `complaint_type` | `CharField(100)` | Category |
-| `admin_type` | `CharField(20)` | Target department (10 choices) |
-| `description` | `TextField` | Full complaint body |
-| `status` | `CharField(20)` | `pending` / `resolved` / `rejected` |
-| `attachment` | `FileField` | Optional supporting file |
-| `rejection_remarks` | `TextField` | Required when rejecting |
-| `created_at` | `DateTimeField` | Auto-set on creation |
-| `resolved_at` | `DateTimeField` | Set on resolution |
-
-### AdminProfile
+<details>
+<summary><b>Complaint</b></summary>
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `user` | `OneToOneField(User)` | Linked Django auth user |
-| `role` | `CharField(20)` | One of 10 `AdminRole` choices |
-| `phone` | `CharField(15)` | Optional contact number |
-| `department` | `CharField(100)` | Department label |
-| `profile_picture` | `ImageField` | Optional profile photo |
+| `student` | ForeignKey(Student) | Complaint owner |
+| `title` | CharField(200) | Short title |
+| `complaint_type` | CharField(100) | Category |
+| `admin_type` | CharField(20) | Target department (10 choices) |
+| `description` | TextField | Full complaint body |
+| `status` | CharField(20) | pending / resolved / rejected |
+| `attachment` | FileField | Optional supporting file |
+| `rejection_remarks` | TextField | Required when rejecting |
+| `created_at` | DateTimeField | Auto-set on creation |
+| `resolved_at` | DateTimeField | Set on resolution |
+
+</details>
+
+<details>
+<summary><b>AdminProfile</b></summary>
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `user` | OneToOneField(User) | Linked Django auth user |
+| `role` | CharField(20) | One of 10 AdminRole choices |
+| `phone` | CharField(15) | Optional contact number |
+| `department` | CharField(100) | Department label |
+| `profile_picture` | ImageField | Optional profile photo |
+
+</details>
+
+<details>
+<summary><b>SuperAdmin · EscalationLog · AdminRating</b></summary>
+
+**SuperAdmin**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `user` | OneToOneField(User) | Linked Django auth user |
+| `created_at` | DateTimeField | Auto-set on creation |
+
+**EscalationLog**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `complaint` | ForeignKey(Complaint) | Escalated complaint |
+| `escalated_at` | DateTimeField | When escalation occurred |
+| `reason` | CharField(255) | Reason for escalation |
+| `is_resolved_by_super_admin` | BooleanField | Whether Super Admin resolved it |
+
+**AdminRating**
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `complaint` | OneToOneField(Complaint) | Rated complaint |
+| `admin` | ForeignKey(AdminProfile) | Admin being rated |
+| `student` | ForeignKey(Student) | Student who rated |
+| `rating` | IntegerField | 1-5 star rating |
+| `comment` | TextField | Optional feedback |
+| `created_at` | DateTimeField | When rating was submitted |
+
+</details>
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are very welcome! Here's how to get started:
+Contributions are very welcome!
 
 ```bash
 # 1. Fork the repo and clone your fork
@@ -438,7 +671,7 @@ git commit -m "feat: add your feature description"
 git push origin feature/your-feature-name
 ```
 
-Please follow [Conventional Commits](https://www.conventionalcommits.org/) for commit messages and ensure your code passes all existing tests before submitting.
+> Please follow [Conventional Commits](https://www.conventionalcommits.org/) and ensure your code passes all existing tests before submitting.
 
 ---
 
@@ -452,7 +685,7 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for full details
 
 <div align="center">
 
-**Mumtaz Ali**
+### Mumtaz Ali
 
 [![GitHub](https://img.shields.io/badge/GitHub-engrmumtazali0112-181717?style=for-the-badge&logo=github)](https://github.com/engrmumtazali0112)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Mumtaz_Ali-0A66C2?style=for-the-badge&logo=linkedin)](https://linkedin.com/in/mumtazali)
@@ -464,17 +697,20 @@ Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for full details
 
 ## 🙏 Acknowledgments
 
-- [Flutter](https://flutter.dev) — for the beautiful cross-platform UI framework
-- [Django](https://www.djangoproject.com/) — for the robust and scalable backend
-- [Django REST Framework](https://www.django-rest-framework.org/) — for the clean API layer
-- [PostgreSQL](https://www.postgresql.org/) — for reliable and performant data storage
+- [**Flutter**](https://flutter.dev) — for the beautiful cross-platform UI framework
+- [**Django**](https://www.djangoproject.com/) — for the robust and scalable backend
+- [**Django REST Framework**](https://www.django-rest-framework.org/) — for the clean API layer
+- [**PostgreSQL**](https://www.postgresql.org/) — for reliable and performant data storage
+- [**fl_chart**](https://pub.dev/packages/fl_chart) — for beautiful chart visualizations
 
 ---
 
 <div align="center">
 
-### ⭐ If this project helped you, please give it a star on GitHub!
+⭐ **If this project helped you, please give it a star on GitHub!**
 
-**Made with ❤️ by [Mumtaz Ali](https://github.com/engrmumtazali0112)**
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:1a73e8,100:0d47a1&height=100&section=footer" width="100%"/>
+
+*Made with ❤️ by [Mumtaz Ali](https://github.com/engrmumtazali0112)*
 
 </div>
