@@ -147,120 +147,161 @@
 
 ### 👨‍🎓 Student Portal
 
-<div align="center">
+<table>
+<tr>
+<td align="center" width="25%">
 
-#### 📋 Student Profile & Dashboard
-> View your complaint statistics, personal details, and update your profile picture at a glance.
+**📋 Student Profile**
 
 ![Student Profile](demo/1.PNG)
 
----
+*Profile & Dashboard*
 
-#### 📝 Submit a Complaint
-> Fill in the complaint title, type, target department, description, and optionally attach supporting files.
+</td>
+<td align="center" width="25%">
+
+**📝 Submit Complaint**
 
 ![Submit Complaint](demo/2.PNG)
 
----
+*Complaint Submission Form*
 
-#### 🔎 Track Complaints
-> Monitor all your submitted complaints in real-time — search by title, status, or complaint ID.
+</td>
+<td align="center" width="25%">
+
+**🔎 Track Complaints**
 
 ![Track Complaints](demo/3.PNG)
 
----
+*Real-Time Tracking*
 
-#### ✅ Resolved Complaints
-> See all resolved complaints with resolution dates, and rate admin performance directly from this screen.
+</td>
+<td align="center" width="25%">
+
+**✅ Resolved Complaints**
 
 ![Resolved Complaints](demo/4.PNG)
 
----
+*Resolution History*
 
-#### 📄 Resolved Complaint Detail View
-> Full details of a resolved complaint — ID, type, department, submitted/resolved dates, and resolution status.
+</td>
+</tr>
+<tr>
+<td align="center" width="25%">
+
+**📄 Complaint Detail**
 
 ![Resolved Complaint Review](demo/5.PNG)
 
----
+*Resolved Complaint Detail View*
 
-#### ❌ Rejected Complaints
-> View rejected complaints with the admin's rejection reason and a link to full details.
+</td>
+<td align="center" width="25%">
+
+**❌ Rejected Complaints**
 
 ![Rejected Complaints](demo/6.PNG)
 
----
+*Rejection Reason & Details*
 
-#### ⭐ Rate Admin Performance
-> After a complaint is resolved, rate the admin on a 5-star scale across Resolution Quality, Response Time, and Professionalism.
+</td>
+<td align="center" width="25%">
 
-![Student Resolved](demo/7.PNG)
+**⭐ Rate Admin**
 
-</div>
+![Rate Admin Performance](demo/7.PNG)
+
+*5-Star Rating System*
+
+</td>
+<td align="center" width="25%">
+
+</td>
+</tr>
+</table>
 
 ---
 
 ### 🛡️ Admin Portal
 
-<div align="center">
+<table>
+<tr>
+<td align="center" width="25%">
 
-#### 📊 Admin Dashboard — All Complaints
-> Sidebar stats (Total / Pending / Resolved / Rejected) with a searchable complaint list and one-click Resolve / Reject buttons.
+**📊 All Complaints**
 
 ![Admin All Complaints](demo/8.PNG)
 
----
+*Dashboard — All Complaints*
 
-#### 🔔 Admin Notifications
-> Real-time notification feed showing new complaint submissions and resolution confirmations.
+</td>
+<td align="center" width="25%">
+
+**🔔 Notifications**
 
 ![Admin Notifications](demo/9.PNG)
 
----
+*Real-Time Notification Feed*
 
-#### ⏳ Pending Complaints
-> Dedicated pending queue for quick action — resolve or reject with a single click.
+</td>
+<td align="center" width="25%">
+
+**⏳ Pending Queue**
 
 ![Admin Pending Complaints](demo/10.PNG)
 
----
+*Pending Complaints*
 
-#### ✅ Admin Resolved Complaints
-> All resolved complaints with star ratings received from students and average score displayed.
+</td>
+<td align="center" width="25%">
+
+**✅ Resolved View**
 
 ![Admin Resolved Complaints](demo/11.PNG)
 
-</div>
+*Resolved + Star Ratings*
+
+</td>
+</tr>
+</table>
 
 ---
 
 ### 👑 Super Admin Dashboard
 
-<div align="center">
+<table>
+<tr>
+<td align="center" width="33%">
 
-#### 📈 Super Admin Overview & Department Analytics
-> System-wide stats with a stacked bar chart breaking down Pending / Resolved / Rejected per department, plus per-department detail cards with complaint type breakdown.
+**📈 Department Analytics**
 
 ![Super Admin Dashboard](demo/12.PNG)
 
----
+*System-Wide Stats & Charts*
 
-#### 👤 Super Admin Profile
-> Super Admin profile card with aggregated system statistics (Total, Pending, Resolved).
+</td>
+<td align="center" width="33%">
+
+**👤 Super Admin Profile**
 
 ![Super Admin Profile](demo/13.PNG)
 
----
+*Profile & System Overview*
 
-#### ⭐ Admin Ratings Overview
-> System-wide admin rating leaderboard — overall average, per-admin scores, student feedback, and department filter.
+</td>
+<td align="center" width="33%">
+
+**⭐ Admin Ratings**
 
 ![Super Admin Ratings](demo/14.PNG)
 
-</div>
+*Ratings Leaderboard*
+
+</td>
+</tr>
+</table>
 
 ---
-
 ## 🏗️ Architecture
 
 ```
