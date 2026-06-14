@@ -4,11 +4,13 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth.models import User
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count, Avg
+from django.db.models.functions import TruncDate
 from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from datetime import timedelta
 
-from .models import Student, Complaint, Notification, AdminProfile
+from .models import Student, Complaint, Notification, AdminProfile, EscalationLog, AdminRating, SuperAdmin
 from .serializers import (
     ComplaintDetailSerializer,
     SolvedComplaintSerializer,
@@ -55,7 +57,6 @@ def student_register(request):
     address = request.data.get('address', '')
     date_of_birth = request.data.get('date_of_birth', None)
 
-    # Add validation for father_name
     if not all([name, father_name, roll_number, department, password, confirm_password]):
         return Response({
             'success': False, 
@@ -78,7 +79,7 @@ def student_register(request):
     student = Student.objects.create(
         user=user,
         student_id=roll_number,
-        father_name=father_name,  # This is the key field
+        father_name=father_name,
         name=name,
         department=department,
         session=session if session else "2024-2028",
@@ -89,8 +90,6 @@ def student_register(request):
     )
 
     return Response({'success': True, 'message': 'Registration successful'})
-
-
 
 
 @api_view(['POST'])
@@ -121,9 +120,7 @@ def submit_complaint(request):
             "message": "All fields are required"
         }, status=400)
 
-    student = Student.objects.filter(
-        student_id__iexact=student_id
-    ).first()
+    student = Student.objects.filter(student_id__iexact=student_id).first()
 
     if not student:
         return Response({
@@ -446,25 +443,20 @@ def complaint_detail_by_id(request, complaint_id):
     }, status=status.HTTP_200_OK)
 
 
-# Add this function to your views.py file (put it near other student endpoints)
-
 @api_view(['GET'])
 def student_resolved_complaints(request, student_id):
     """Get only resolved complaints for a student"""
     try:
-        # Try to find student by student_id (case insensitive)
         student = Student.objects.filter(student_id__iexact=student_id).first()
         
         if not student:
             return Response({'success': False, 'message': 'Student not found'}, status=404)
         
-        # Filter only resolved complaints, ordered by resolved date (newest first)
         resolved_complaints = Complaint.objects.filter(
             student=student, 
             status='resolved'
         ).order_by('-resolved_at')
         
-        # Prepare the response data
         data = []
         for complaint in resolved_complaints:
             data.append({
@@ -495,14 +487,12 @@ def student_resolved_complaints(request, student_id):
         }, status=500)
 
 
-
 @api_view(['GET'])
 def solved_complaints(request):
     """Get only resolved complaints for admin panel"""
     admin_type = request.GET.get('admin_type', '')
     search_query = request.GET.get('search', '')
     
-    # Filter by admin_type if provided
     if admin_type:
         complaints = Complaint.objects.filter(
             status='resolved',
@@ -544,13 +534,13 @@ def solved_complaints(request):
         'count': len(data)
     })
 
+
 @api_view(['GET'])
 def pending_complaints(request):
     """Get only pending complaints for admin panel"""
     admin_type = request.GET.get('admin_type', '')
     search_query = request.GET.get('search', '')
     
-    # Filter by admin_type if provided
     if admin_type:
         complaints = Complaint.objects.filter(
             status='pending',
@@ -591,6 +581,7 @@ def pending_complaints(request):
         'data': data,
         'count': len(data)
     })
+
 
 @api_view(['GET'])
 def new_complaint_count(request):
@@ -750,39 +741,27 @@ def mark_complaints_seen(request):
 # ─────────────────────────────────────────────
 # Student profile endpoints
 # ─────────────────────────────────────────────
+
 @api_view(['GET'])
 def get_student_profile(request, student_id):
     """Get student profile information."""
     try:
-        # Try to find student by student_id (case insensitive)
         student = Student.objects.filter(student_id__iexact=student_id).first()
         
         if not student:
             return Response({'success': False, 'message': 'Student not found'}, status=404)
         
-        # Get complaint counts
         total_complaints = Complaint.objects.filter(student=student).count()
         pending_complaints = Complaint.objects.filter(student=student, status='pending').count()
         resolved_complaints = Complaint.objects.filter(student=student, status='resolved').count()
         rejected_complaints = Complaint.objects.filter(student=student, status='rejected').count()
         
-        # Get profile picture URL
         profile_pic_url = None
         if student.profile_picture and student.profile_picture.name:
             try:
                 profile_pic_url = request.build_absolute_uri(student.profile_picture.url)
             except:
                 profile_pic_url = None
-        
-        # Debug print
-        print(f"Student found: {student.student_id}")
-        print(f"Name: {student.name}")
-        print(f"Father Name: {student.father_name}")
-        print(f"Department: {student.department}")
-        print(f"Session: {student.session}")
-        print(f"Phone: {student.phone}")
-        print(f"Email: {student.email}")
-        print(f"Address: {student.address}")
         
         return Response({
             'success': True,
@@ -902,7 +881,6 @@ def get_admin_notifications(request):
     
     notifications_data = []
     
-    # Get new (unseen) complaints for this admin type
     new_complaints = Complaint.objects.filter(
         admin_type=admin_type,
         is_seen_by_admin=False,
@@ -920,7 +898,6 @@ def get_admin_notifications(request):
             'is_read': False,
         })
     
-    # Get recently resolved complaints (last 7 days)
     week_ago = timezone.now() - timezone.timedelta(days=7)
     resolved_complaints = Complaint.objects.filter(
         admin_type=admin_type,
@@ -939,7 +916,6 @@ def get_admin_notifications(request):
             'is_read': False,
         })
     
-    # Get recently rejected complaints (last 7 days)
     rejected_complaints = Complaint.objects.filter(
         admin_type=admin_type,
         status='rejected',
@@ -957,7 +933,6 @@ def get_admin_notifications(request):
             'is_read': False,
         })
     
-    # Sort by date (newest first)
     notifications_data.sort(key=lambda x: x['created_at'], reverse=True)
     
     return Response({
@@ -976,7 +951,6 @@ def get_notification_count(request):
     if not admin_type:
         return Response({'count': 0})
     
-    # Count new unseen complaints
     count = Complaint.objects.filter(
         admin_type=admin_type,
         is_seen_by_admin=False,
@@ -986,39 +960,17 @@ def get_notification_count(request):
     return Response({'count': count})
 
 
-
-
 @api_view(['POST'])
 def mark_notification_read(request, notification_id):
     """Mark a notification as read."""
     return Response({'success': True})
 
 
-from django.contrib.auth.models import User
-from .models import AdminProfile
-
 @api_view(['GET'])
 def get_available_departments(request):
-    """
-    Get list of departments that have admin accounts created.
-    This ensures complaints can only be sent to departments with existing admins.
-    """
-    # Get all admin profiles with their roles
+    """Get list of departments that have admin accounts created."""
     admin_profiles = AdminProfile.objects.select_related('user').all()
     
-    # Extract unique roles that have active admin users
-    available_departments = []
-    for profile in admin_profiles:
-        # Check if the admin user is active
-        if profile.user and profile.user.is_active:
-            department_info = {
-                'role': profile.role,
-                'display_name': profile.get_role_display_name() if hasattr(profile, 'get_role_display_name') else profile.role.capitalize(),
-                'admin_name': profile.user.get_full_name() or profile.user.username,
-            }
-            available_departments.append(department_info)
-    
-    # Define role to display name mapping
     role_display_names = {
         'administration': 'Administration',
         'warden': 'Warden',
@@ -1032,7 +984,6 @@ def get_available_departments(request):
         'it': 'IT Department',
     }
     
-    # Format the response
     departments = []
     for profile in admin_profiles:
         if profile.user and profile.user.is_active:
@@ -1042,7 +993,6 @@ def get_available_departments(request):
                 'admin_name': profile.user.get_full_name() or profile.user.username,
             })
     
-    # Remove duplicates (in case of multiple admins for same role)
     seen = set()
     unique_departments = []
     for dept in departments:
@@ -1055,6 +1005,7 @@ def get_available_departments(request):
         'departments': unique_departments,
         'count': len(unique_departments)
     }, status=status.HTTP_200_OK)
+
 
 # ─────────────────────────────────────────────
 # Student notification endpoints
@@ -1116,10 +1067,8 @@ def mark_all_student_notifications_read(request, student_id):
     return Response({'success': True, 'updated': updated})
 
 
-# Add these functions at the VERY END of your views.py file (after all existing code)
-
 # ─────────────────────────────────────────────
-# Student resolved/rejected count endpoints (for badge notifications)
+# Student resolved/rejected count endpoints
 # ─────────────────────────────────────────────
 
 @api_view(['GET'])
@@ -1163,8 +1112,347 @@ def mark_student_resolved_seen(request, student_id):
     """Mark resolved complaints as seen for a student"""
     try:
         student = Student.objects.get(student_id=student_id)
-        # For now, just return success
-        # You can implement a model to track seen status if needed
         return Response({'success': True})
     except Student.DoesNotExist:
         return Response({'success': False}, status=404)
+
+
+# ─────────────────────────────────────────────
+# Super Admin Views
+# ─────────────────────────────────────────────
+
+@api_view(['POST'])
+def super_admin_login(request):
+    """Super Admin login endpoint"""
+    username = request.data.get('username')
+    password = request.data.get('password')
+    
+    user = authenticate(username=username, password=password)
+    
+    if user is not None:
+        if hasattr(user, 'super_admin') or user.is_superuser:
+            return Response({
+                'success': True,
+                'message': 'Super Admin login successful',
+                'username': user.username,
+                'is_super_admin': True
+            })
+        return Response({'success': False, 'message': 'Not a Super Admin account'}, status=403)
+    
+    return Response({'success': False, 'message': 'Invalid credentials'}, status=401)
+
+
+@api_view(['GET'])
+def super_admin_dashboard_stats(request):
+    """Get comprehensive statistics for Super Admin dashboard"""
+    total = Complaint.objects.count()
+    pending = Complaint.objects.filter(status='pending').count()
+    resolved = Complaint.objects.filter(status='resolved').count()
+    rejected = Complaint.objects.filter(status='rejected').count()
+    
+    department_stats = list(
+        Complaint.objects.values('admin_type')
+        .annotate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            resolved=Count('id', filter=Q(status='resolved')),
+            rejected=Count('id', filter=Q(status='rejected')),
+            avg_rating=Avg('rating__rating')
+        )
+        .order_by('-total')
+    )
+    
+    # Add type_breakdown for each department
+    for dept in department_stats:
+        dept['type_breakdown'] = list(
+            Complaint.objects.filter(admin_type=dept['admin_type'])
+            .values('complaint_type')
+            .annotate(count=Count('id'))
+            .order_by('-count')
+        )
+    
+    complaint_type_stats = list(
+        Complaint.objects.values('complaint_type')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+    
+    escalated_count = EscalationLog.objects.count()
+    pending_escalated = EscalationLog.objects.filter(
+        is_resolved_by_super_admin=False,
+        complaint__status='pending'
+    ).count()
+    
+    thirty_days_ago = timezone.now() - timedelta(days=30)
+    daily_trend = list(
+        Complaint.objects.filter(created_at__gte=thirty_days_ago)
+        .annotate(date=TruncDate('created_at'))
+        .values('date')
+        .annotate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(status='pending')),
+            resolved=Count('id', filter=Q(status='resolved')),
+            rejected=Count('id', filter=Q(status='rejected')),
+        )
+        .order_by('date')
+    )
+    for row in daily_trend:
+        row['date'] = row['date'].strftime('%Y-%m-%d')
+    
+    # Admin rating summary
+    admin_rating_summary = list(
+        AdminRating.objects.values('admin__user__username', 'admin__role')
+        .annotate(
+            avg_rating=Avg('rating'),
+            total_ratings=Count('id')
+        )
+        .order_by('-avg_rating')
+    )
+    # Rename keys for frontend compatibility
+    admin_rating_summary = [
+        {
+            'admin__user__username': r['admin__user__username'],
+            'admin__role': r['admin__role'],
+            'avg_rating': r['avg_rating'],
+            'total_ratings': r['total_ratings'],
+        }
+        for r in admin_rating_summary
+    ]
+    
+    return Response({
+        'success': True,
+        'overall': {
+            'total': total,
+            'pending': pending,
+            'resolved': resolved,
+            'rejected': rejected,
+        },
+        'department_stats': department_stats,
+        'complaint_type_stats': complaint_type_stats,
+        'daily_trend': daily_trend,
+        'escalated_stats': {
+            'total_escalated': escalated_count,
+            'pending_escalated': pending_escalated,
+        },
+        'admin_rating_summary': admin_rating_summary,
+    })
+
+    
+@api_view(['GET'])
+def get_escalated_complaints(request):
+    """All unresolved escalated complaints for Super Admin review."""
+    escalated_ids = EscalationLog.objects.values_list('complaint_id', flat=True)
+    complaints = Complaint.objects.filter(
+        id__in=escalated_ids, 
+        status='pending'
+    ).select_related('student').order_by('-created_at')
+    
+    data = []
+    for c in complaints:
+        log = EscalationLog.objects.filter(complaint=c).first()
+        data.append({
+            'id': c.id,
+            'title': c.title or c.complaint_type,
+            'complaint_type': c.complaint_type,
+            'description': c.description,
+            'student_name': c.student.name,
+            'student_id': c.student.student_id,
+            'admin_type': c.admin_type,
+            'created_at': c.created_at.strftime('%Y-%m-%d %H:%M'),
+            'escalated_at': log.escalated_at.strftime('%Y-%m-%d %H:%M') if log else None,
+            'days_pending': (timezone.now() - c.created_at).days,
+        })
+    
+    return Response({'success': True, 'complaints': data})
+
+
+@api_view(['POST'])
+def reassign_escalated_complaint(request, complaint_id):
+    """Super Admin reassigns complaint to a different department."""
+    try:
+        complaint = Complaint.objects.get(id=complaint_id)
+    except Complaint.DoesNotExist:
+        return Response({'error': 'Complaint not found'}, status=404)
+    
+    new_admin_type = request.data.get('new_admin_type', '').strip()
+    valid_types = [c[0] for c in Complaint.ADMIN_TYPE_CHOICES]
+    if new_admin_type not in valid_types:
+        return Response({'error': f'Invalid admin type'}, status=400)
+    
+    complaint.admin_type = new_admin_type
+    complaint.save(update_fields=['admin_type'])
+    
+    Notification.objects.create(
+        student=complaint.student,
+        message=f"🔄 Your complaint #{complaint.id} has been reassigned to {new_admin_type} department."
+    )
+    
+    return Response({'success': True, 'message': 'Complaint reassigned successfully'})
+
+
+@api_view(['POST'])
+def resolve_escalated_complaint(request, complaint_id):
+    """Super Admin directly resolves an escalated complaint."""
+    try:
+        complaint = Complaint.objects.get(id=complaint_id)
+    except Complaint.DoesNotExist:
+        return Response({'error': 'Complaint not found'}, status=404)
+    
+    complaint.status = 'resolved'
+    complaint.resolved_at = timezone.now()
+    complaint.save(update_fields=['status', 'resolved_at'])
+    
+    EscalationLog.objects.filter(complaint=complaint).update(is_resolved_by_super_admin=True)
+    
+    Notification.objects.create(
+        student=complaint.student,
+        message=f"✅ Your complaint '{complaint.title or complaint.complaint_type}' has been resolved by Super Admin."
+    )
+    
+    return Response({'success': True, 'message': 'Complaint resolved successfully'})
+
+
+@api_view(['GET'])
+def get_all_admin_ratings(request):
+    """Get all admin ratings for Super Admin with optional department filter"""
+    admin_type = request.GET.get('admin_type', '')
+    
+    ratings = AdminRating.objects.select_related(
+        'admin__user', 'student', 'complaint'
+    ).all().order_by('-created_at')
+    
+    # Apply filter if admin_type is provided
+    if admin_type:
+        ratings = ratings.filter(admin__role=admin_type)
+    
+    data = [
+        {
+            'id': r.id,
+            'complaint_id': r.complaint_id,
+            'complaint_type': r.complaint.complaint_type,
+            'admin_username': r.admin.user.username,
+            'admin_role': r.admin.role,
+            'student_id': r.student.student_id,
+            'student_name': r.student.name,
+            'rating': r.rating,
+            'comment': r.comment or '',
+            'created_at': r.created_at.strftime('%Y-%m-%d'),
+        }
+        for r in ratings
+    ]
+    
+    return Response({'success': True, 'data': data})
+
+
+@api_view(['GET'])
+def get_complaint_rating(request, complaint_id):
+    """Check if a complaint has been rated"""
+    try:
+        rating = AdminRating.objects.get(complaint_id=complaint_id)
+        return Response({
+            'success': True,
+            'has_rated': True,
+            'rating': rating.rating,
+            'comment': rating.comment or '',
+            'created_at': rating.created_at.strftime('%Y-%m-%d'),
+        })
+    except AdminRating.DoesNotExist:
+        return Response({'success': True, 'has_rated': False})
+
+
+@api_view(['POST'])
+def submit_admin_rating(request, complaint_id):
+    """Student rates the admin after complaint is resolved"""
+    try:
+        complaint = Complaint.objects.get(id=complaint_id, status='resolved')
+    except Complaint.DoesNotExist:
+        return Response({'error': 'Complaint not found or not resolved'}, status=404)
+    
+    if AdminRating.objects.filter(complaint=complaint).exists():
+        return Response({'error': 'You have already rated this complaint'}, status=400)
+    
+    rating = request.data.get('rating')
+    comment = request.data.get('comment', '')
+    
+    if not rating or not (1 <= int(rating) <= 5):
+        return Response({'error': 'Rating must be between 1 and 5'}, status=400)
+    
+    admin_profile = AdminProfile.objects.filter(role=complaint.admin_type).first()
+    
+    if not admin_profile:
+        return Response({'error': 'Admin not found'}, status=404)
+    
+    AdminRating.objects.create(
+        complaint=complaint,
+        admin=admin_profile,
+        student=complaint.student,
+        rating=int(rating),
+        comment=comment
+    )
+    
+    return Response({'success': True, 'message': 'Thank you for your feedback!'})
+
+
+@api_view(['POST'])
+def super_admin_register(request):
+    """Super Admin registration endpoint"""
+    SUPER_ADMIN_SECRET_KEY = getattr(settings, 'SUPER_ADMIN_SECRET_KEY', 'SUPER_ADMIN_SECRET_2026')
+    
+    name = str(request.data.get('name', '')).strip()
+    username = str(request.data.get('username', '')).strip()
+    password = str(request.data.get('password', ''))
+    confirm_password = str(request.data.get('confirm_password', ''))
+    secret_key = str(request.data.get('super_admin_secret_key', '')).strip()
+    phone = str(request.data.get('phone', '')).strip()
+    department = str(request.data.get('department', '')).strip()
+    email = str(request.data.get('email', '')).strip()
+    address = str(request.data.get('address', '')).strip()
+
+    if secret_key != SUPER_ADMIN_SECRET_KEY:
+        return Response({'success': False, 'message': 'Invalid super admin secret key.'}, status=403)
+
+    if not all([name, username, password, confirm_password]):
+        return Response({'success': False, 'message': 'All fields are required.'}, status=400)
+
+    if password != confirm_password:
+        return Response({'success': False, 'message': 'Passwords do not match.'}, status=400)
+
+    if len(password) < 8:
+        return Response({'success': False, 'message': 'Password must be at least 8 characters.'}, status=400)
+
+    if User.objects.filter(username=username).exists():
+        return Response({'success': False, 'message': 'Username already taken.'}, status=400)
+
+    parts = name.split(' ', 1)
+    first_name = parts[0]
+    last_name = parts[1] if len(parts) > 1 else ''
+
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        email=email,
+        is_staff=True,
+        is_superuser=True,
+    )
+
+    # Create SuperAdmin record
+    SuperAdmin.objects.create(user=user)
+
+    # Also create admin profile for consistency
+    AdminProfile.objects.create(
+        user=user,
+        role='administration',
+        phone=phone or None,
+        department=department or None,
+        email=email or None,
+        address=address or None,
+    )
+
+    return Response({
+        'success': True,
+        'message': 'Super Admin registered successfully.',
+        'admin_id': user.pk,
+        'username': user.username,
+    }, status=201)
