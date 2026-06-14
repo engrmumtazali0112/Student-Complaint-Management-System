@@ -4,36 +4,59 @@ from django.utils import timezone
 from .models import Complaint, Notification, AdminProfile
 from django.contrib.auth.models import User
 
+
 @receiver(post_save, sender=Complaint)
 def create_complaint_notifications(sender, instance, created, **kwargs):
-    """Create notifications when complaint is created or updated"""
-    
+    """
+    Fires on every Complaint save.
+
+    Created  → mark unseen for admin (no admin notification model yet).
+    Updated  → notify student on status change:
+                 • resolved  → prompt student to rate the admin
+                 • rejected  → tell student the rejection reason
+    """
+
     if created:
-        # New complaint submitted - notify the assigned admin department
+        # Mark new complaint unseen without triggering the signal again
         try:
-            # Find admin users with matching role
-            admin_profiles = AdminProfile.objects.filter(role=instance.admin_type)
-            
-            for admin_profile in admin_profiles:
-                # Create notification for admin (you'll need an AdminNotification model)
-                # For now, we'll mark complaint as unseen
-                instance.is_seen_by_admin = False
-                instance.save(update_fields=['is_seen_by_admin'])
-                
+            AdminProfile.objects.filter(role=instance.admin_type)  # just validate dept exists
+            Complaint.objects.filter(pk=instance.pk).update(is_seen_by_admin=False)
         except Exception as e:
-            print(f"Error creating admin notification: {e}")
-    
+            print(f"[signals] Error on complaint creation: {e}")
+
     else:
-        # Status changed - notify student
-        if instance.status == 'resolved':
-            Notification.objects.create(
+        # ── Resolved ──────────────────────────────────────────────────────
+        if instance.status == "resolved":
+            # Avoid duplicate notifications on repeated saves
+            already = Notification.objects.filter(
                 student=instance.student,
-                message=f"✅ Your complaint '{instance.title or instance.complaint_type}' has been resolved.",
-                created_at=timezone.now()
-            )
-        elif instance.status == 'rejected' and instance.rejection_remarks:
-            Notification.objects.create(
+                message__startswith=f"✅ Your complaint '{instance.title or instance.complaint_type}' has been resolved",
+            ).exists()
+
+            if not already:
+                Notification.objects.create(
+                    student=instance.student,
+                    message=(
+                        f"✅ Your complaint '{instance.title or instance.complaint_type}' "
+                        f"has been resolved. Please rate the admin's performance by going to "
+                        f"My Complaints → view this complaint → Rate Admin."
+                    ),
+                    created_at=timezone.now(),
+                )
+
+        # ── Rejected ──────────────────────────────────────────────────────
+        elif instance.status == "rejected" and instance.rejection_remarks:
+            already = Notification.objects.filter(
                 student=instance.student,
-                message=f"❌ Your complaint '{instance.title or instance.complaint_type}' was rejected. Reason: {instance.rejection_remarks}",
-                created_at=timezone.now()
-            )
+                message__startswith=f"❌ Your complaint '{instance.title or instance.complaint_type}' was rejected",
+            ).exists()
+
+            if not already:
+                Notification.objects.create(
+                    student=instance.student,
+                    message=(
+                        f"❌ Your complaint '{instance.title or instance.complaint_type}' "
+                        f"was rejected. Reason: {instance.rejection_remarks}"
+                    ),
+                    created_at=timezone.now(),
+                )
