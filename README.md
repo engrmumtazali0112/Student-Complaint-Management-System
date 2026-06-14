@@ -152,49 +152,49 @@
 #### 📋 Student Profile & Dashboard
 > View your complaint statistics, personal details, and update your profile picture at a glance.
 
-![Student Profile](demo/sp.PNG)
+![Student Profile](demo/1.PNG)
 
 ---
 
 #### 📝 Submit a Complaint
 > Fill in the complaint title, type, target department, description, and optionally attach supporting files.
 
-![Submit Complaint](demo/ssc.PNG)
+![Submit Complaint](demo/2.PNG)
 
 ---
 
 #### 🔎 Track Complaints
 > Monitor all your submitted complaints in real-time — search by title, status, or complaint ID.
 
-![Track Complaints](demo/tc.PNG)
+![Track Complaints](demo/3.PNG)
 
 ---
 
 #### ✅ Resolved Complaints
 > See all resolved complaints with resolution dates, and rate admin performance directly from this screen.
 
-![Resolved Complaints](demo/srec.PNG)
+![Resolved Complaints](demo/4.PNG)
 
 ---
 
 #### 📄 Resolved Complaint Detail View
 > Full details of a resolved complaint — ID, type, department, submitted/resolved dates, and resolution status.
 
-![Resolved Complaint Review](demo/ResComplaintReviev.PNG)
+![Resolved Complaint Review](demo/5.PNG)
 
 ---
 
 #### ❌ Rejected Complaints
 > View rejected complaints with the admin's rejection reason and a link to full details.
 
-![Rejected Complaints](demo/src.PNG)
+![Rejected Complaints](demo/6.PNG)
 
 ---
 
 #### ⭐ Rate Admin Performance
 > After a complaint is resolved, rate the admin on a 5-star scale across Resolution Quality, Response Time, and Professionalism.
 
-![Student Resolved](demo/sres.PNG)
+![Student Resolved](demo/7.PNG)
 
 </div>
 
@@ -207,28 +207,28 @@
 #### 📊 Admin Dashboard — All Complaints
 > Sidebar stats (Total / Pending / Resolved / Rejected) with a searchable complaint list and one-click Resolve / Reject buttons.
 
-![Admin All Complaints](demo/aac.PNG)
+![Admin All Complaints](demo/8.PNG)
 
 ---
 
 #### 🔔 Admin Notifications
 > Real-time notification feed showing new complaint submissions and resolution confirmations.
 
-![Admin Notifications](demo/an.PNG)
+![Admin Notifications](demo/9.PNG)
 
 ---
 
 #### ⏳ Pending Complaints
 > Dedicated pending queue for quick action — resolve or reject with a single click.
 
-![Admin Pending Complaints](demo/apc.PNG)
+![Admin Pending Complaints](demo/10.PNG)
 
 ---
 
 #### ✅ Admin Resolved Complaints
 > All resolved complaints with star ratings received from students and average score displayed.
 
-![Admin Resolved Complaints](demo/arec.PNG)
+![Admin Resolved Complaints](demo/11.PNG)
 
 </div>
 
@@ -241,21 +241,21 @@
 #### 📈 Super Admin Overview & Department Analytics
 > System-wide stats with a stacked bar chart breaking down Pending / Resolved / Rejected per department, plus per-department detail cards with complaint type breakdown.
 
-![Super Admin Dashboard](demo/sadashboard.PNG)
+![Super Admin Dashboard](demo/12.PNG)
 
 ---
 
 #### 👤 Super Admin Profile
 > Super Admin profile card with aggregated system statistics (Total, Pending, Resolved).
 
-![Super Admin Profile](demo/superadmin.PNG)
+![Super Admin Profile](demo/13.PNG)
 
 ---
 
 #### ⭐ Admin Ratings Overview
 > System-wide admin rating leaderboard — overall average, per-admin scores, student feedback, and department filter.
 
-![Super Admin Ratings](demo/sarateing.PNG)
+![Super Admin Ratings](demo/14.PNG)
 
 </div>
 
