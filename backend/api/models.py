@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
+from django.utils import timezone
 
 
 # ─────────────────────────────────────────────
@@ -155,3 +156,52 @@ class Complaint(models.Model):
 
     def __str__(self):
         return f"{self.student.student_id} – {self.complaint_type} [{self.admin_type}]"
+    
+    def is_escalation_needed(self):
+        """Check if complaint needs escalation (pending for 3+ days)"""
+        if self.status == 'pending' and self.created_at:
+            delta = timezone.now() - self.created_at
+            return delta.days >= 3
+        return False
+
+
+# ─────────────────────────────────────────────
+# Super Admin model
+# ─────────────────────────────────────────────
+
+class SuperAdmin(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='super_admin')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Super Admin: {self.user.username}"
+
+
+# ─────────────────────────────────────────────
+# Escalation Log model
+# ─────────────────────────────────────────────
+
+class EscalationLog(models.Model):
+    complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name='escalations')
+    escalated_at = models.DateTimeField(auto_now_add=True)
+    reason = models.CharField(max_length=255, default="Pending for more than 3 days")
+    is_resolved_by_super_admin = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Complaint #{self.complaint.id} escalated on {self.escalated_at}"
+
+
+# ─────────────────────────────────────────────
+# Admin Rating model
+# ─────────────────────────────────────────────
+
+class AdminRating(models.Model):
+    complaint = models.OneToOneField(Complaint, on_delete=models.CASCADE, related_name='rating')
+    admin = models.ForeignKey(AdminProfile, on_delete=models.CASCADE, related_name='ratings')
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    rating = models.IntegerField(choices=[(1, '1 Star'), (2, '2 Stars'), (3, '3 Stars'), (4, '4 Stars'), (5, '5 Stars')])
+    comment = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Rating {self.rating} for {self.admin.user.username} (Complaint #{self.complaint.id})"
