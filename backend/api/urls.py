@@ -14,6 +14,8 @@ from .views import (
     update_complaint_status,
     pending_complaints,
     new_complaint_count,
+    get_all_admin_ratings,
+    get_complaint_rating,
     mark_complaints_seen,
     reject_complaint,
     rejected_complaints,
@@ -31,10 +33,18 @@ from .views import (
     get_student_notifications,
     mark_student_notification_read,
     mark_all_student_notifications_read,
-    # ── student resolved/rejected counts (NEW) ──
+    # ── student resolved/rejected counts ──
     get_student_resolved_count,
     get_student_rejected_count,
     mark_student_resolved_seen,
+    # ── Super Admin endpoints ──
+    super_admin_login,
+    super_admin_dashboard_stats,
+    get_escalated_complaints,
+    reassign_escalated_complaint,
+    resolve_escalated_complaint,
+    submit_admin_rating,
+    super_admin_register,  # ✅ Add this line
 )
 
 urlpatterns = [
@@ -64,7 +74,7 @@ urlpatterns = [
          mark_all_student_notifications_read,
          name='mark_all_student_notifications_read'),
 
-    # ── Student resolved/rejected counts (NEW) ────────────────
+    # ── Student resolved/rejected counts ──────────────────────
     path('student/resolved-count/<path:student_id>/',
          get_student_resolved_count,
          name='get_student_resolved_count'),
@@ -100,4 +110,17 @@ urlpatterns = [
     # ── Direct complaint access ───────────────────────────────
     path('complaint/<int:complaint_id>/',         complaint_detail_by_id,      name='complaint_detail_by_id'),
     path('departments/available/',                get_available_departments,   name='get_available_departments'),
+
+    # ── Rating endpoints ──────────────────────────────────────
+    path('super-admin/admin-ratings/',            get_all_admin_ratings,       name='get_all_admin_ratings'),
+    path('student/complaint-rating/<int:complaint_id>/', get_complaint_rating,  name='get_complaint_rating'),
+
+    # ── Super Admin endpoints ─────────────────────────────────
+    path('super-admin/login/',                    super_admin_login,                 name='super_admin_login'),
+    path('super-admin/stats/',                    super_admin_dashboard_stats,       name='super_admin_dashboard_stats'),
+    path('super-admin/escalated/',                get_escalated_complaints,          name='get_escalated_complaints'),
+    path('super-admin/reassign/<int:complaint_id>/', reassign_escalated_complaint,    name='reassign_escalated_complaint'),
+    path('super-admin/resolve/<int:complaint_id>/',   resolve_escalated_complaint,    name='resolve_escalated_complaint'),
+    path('student/rate-admin/<int:complaint_id>/', submit_admin_rating,              name='submit_admin_rating'),
+    path('super-admin/register/',                 super_admin_register,              name='super_admin_register'),  # ✅ This line is now correct
 ]
