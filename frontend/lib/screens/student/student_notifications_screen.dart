@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../../constants/api_constants.dart';
+import 'student_rate_admin_screen.dart';  // Add this import
 
 class StudentNotificationsScreen extends StatefulWidget {
   final String studentId;
@@ -35,7 +37,7 @@ class _StudentNotificationsScreenState
     try {
       final response = await http.get(
         Uri.parse(
-            'http://127.0.0.1:8000/api/student/notifications/${widget.studentId}/'),
+            '${ApiConstants.baseUrl}/student/notifications/${widget.studentId}/'),
       );
       if (response.statusCode == 200 && mounted) {
         final data = jsonDecode(response.body);
@@ -57,7 +59,6 @@ class _StudentNotificationsScreenState
   }
 
   Future<void> _markOneRead(int id) async {
-    // Optimistic update
     setState(() {
       final idx = _notifications.indexWhere((n) => n['id'] == id);
       if (idx != -1) _notifications[idx]['is_read'] = true;
@@ -65,8 +66,8 @@ class _StudentNotificationsScreenState
     _notifyBadge();
     try {
       await http.post(Uri.parse(
-          'http://127.0.0.1:8000/api/student/notifications/mark-read/$id/'));
-      _fetchNotifications(); // Refresh after marking read
+          '${ApiConstants.baseUrl}/student/notifications/mark-read/$id/'));
+      _fetchNotifications();
     } catch (e) {
       debugPrint('Error marking notification as read: $e');
     }
@@ -81,20 +82,36 @@ class _StudentNotificationsScreenState
     _notifyBadge();
     try {
       await http.post(Uri.parse(
-          'http://127.0.0.1:8000/api/student/notifications/mark-all-read/${widget.studentId}/'));
-      _fetchNotifications(); // Refresh after marking all read
+          '${ApiConstants.baseUrl}/student/notifications/mark-all-read/${widget.studentId}/'));
+      _fetchNotifications();
     } catch (e) {
       debugPrint('Error marking all as read: $e');
     }
   }
 
   /// Fetch complaint detail from backend and show in bottom sheet.
-  Future<void> _openComplaintDetail(int complaintId) async {
+  Future<void> _openComplaintDetail(int complaintId, String complaintTitle) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ComplaintDetailSheet(complaintId: complaintId),
+      builder: (_) => _ComplaintDetailSheet(
+        complaintId: complaintId,
+        studentId: widget.studentId,
+        onRatePressed: () {
+          Navigator.pop(_);
+          // Navigate to rate admin screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StudentRateAdminScreen(
+                complaintId: complaintId,
+                complaintTitle: complaintTitle,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -117,14 +134,23 @@ class _StudentNotificationsScreenState
     return null;
   }
 
+  String? _complaintTitleOf(Map<String, dynamic> n) {
+    final msg = n['message'] as String? ?? '';
+    // Extract title between quotes or after "resolved"
+    final match = RegExp(r"'(.*?)'").firstMatch(msg);
+    if (match != null) return match.group(1);
+    return 'Complaint';
+  }
+
   void _onTapNotification(Map<String, dynamic> notification) {
     final id = notification['id'] as int;
     if (!(notification['is_read'] as bool? ?? false)) {
       _markOneRead(id);
     }
     final complaintId = _complaintIdOf(notification);
+    final complaintTitle = _complaintTitleOf(notification);
     if (complaintId != null) {
-      _openComplaintDetail(complaintId);
+      _openComplaintDetail(complaintId, complaintTitle ?? 'Complaint');
     }
   }
 
@@ -235,7 +261,7 @@ class _StudentNotificationsScreenState
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: const Color(0xFF2B6CB0).withAlpha(20),
+      color: const Color(0xFF2B6CB0).withOpacity(0.2),
       child: Text(
         '$_unreadCount unread notification${_unreadCount > 1 ? 's' : ''}',
         style: const TextStyle(
@@ -273,14 +299,14 @@ class _StudentNotificationsScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : accent.withAlpha(18),
+        color: isRead ? Colors.white : accent.withOpacity(0.18),
         borderRadius: BorderRadius.circular(16),
         border: isRead
             ? null
-            : Border.all(color: accent.withAlpha(60), width: 1),
+            : Border.all(color: accent.withOpacity(0.6), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withAlpha(15),
+            color: Colors.grey.withOpacity(0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -299,7 +325,7 @@ class _StudentNotificationsScreenState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: accent.withAlpha(isRead ? 20 : 35),
+                    color: accent.withOpacity(isRead ? 20 : 35),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(notifIcon, color: accent, size: 22),
@@ -342,6 +368,50 @@ class _StudentNotificationsScreenState
                           ],
                         ],
                       ),
+                      // ✅ Show "Rate Now" button for resolved complaints
+                      if (isResolved && !isRead)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final complaintId = _complaintIdOf(notification);
+                              final complaintTitle = _complaintTitleOf(notification);
+                              if (complaintId != null) {
+                                // Mark as read first
+                                _markOneRead(notification['id']);
+                                // Navigate to rate screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => StudentRateAdminScreen(
+                                      complaintId: complaintId,
+                                      complaintTitle: complaintTitle ?? 'Complaint',
+                                    ),
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: accent,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.star_rate, size: 16),
+                                SizedBox(width: 4),
+                                Text('Rate Admin', style: TextStyle(fontSize: 12)),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -367,7 +437,14 @@ class _StudentNotificationsScreenState
 // Complaint detail bottom sheet
 class _ComplaintDetailSheet extends StatefulWidget {
   final int complaintId;
-  const _ComplaintDetailSheet({required this.complaintId});
+  final String studentId;
+  final VoidCallback? onRatePressed;
+
+  const _ComplaintDetailSheet({
+    required this.complaintId,
+    required this.studentId,
+    this.onRatePressed,
+  });
 
   @override
   State<_ComplaintDetailSheet> createState() => _ComplaintDetailSheetState();
@@ -388,7 +465,7 @@ class _ComplaintDetailSheetState extends State<_ComplaintDetailSheet> {
     try {
       final response = await http.get(
         Uri.parse(
-            'http://127.0.0.1:8000/api/complaint/${widget.complaintId}/'),
+            '${ApiConstants.baseUrl}/complaint/${widget.complaintId}/'),
       );
       if (response.statusCode == 200 && mounted) {
         final body = jsonDecode(response.body);
@@ -412,9 +489,12 @@ class _ComplaintDetailSheetState extends State<_ComplaintDetailSheet> {
 
   Color _statusColor(String? status) {
     switch (status) {
-      case 'resolved': return const Color(0xFF10B981);
-      case 'rejected': return const Color(0xFFDC2626);
-      default:         return const Color(0xFFF59E0B);
+      case 'resolved':
+        return const Color(0xFF10B981);
+      case 'rejected':
+        return const Color(0xFFDC2626);
+      default:
+        return const Color(0xFFF59E0B);
     }
   }
 
@@ -479,11 +559,11 @@ class _ComplaintDetailSheetState extends State<_ComplaintDetailSheet> {
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: _statusColor(_data!['status'])
-                                        .withAlpha(25),
+                                        .withOpacity(0.25),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color: _statusColor(_data!['status'])
-                                            .withAlpha(80)),
+                                            .withOpacity(0.8)),
                                   ),
                                   child: Text(
                                     (_data!['status'] as String? ?? '')
@@ -532,6 +612,36 @@ class _ComplaintDetailSheetState extends State<_ComplaintDetailSheet> {
                                     fontSize: 14, color: Color(0xFF1A365D)),
                               ),
                             ),
+                            const SizedBox(height: 20),
+                            // ✅ Rate Button for resolved complaints
+                            if (_data!['status'] == 'resolved')
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    widget.onRatePressed?.call();
+                                  },
+                                  icon: const Icon(Icons.star_rate),
+                                  label: const Text(
+                                    'Rate Admin Performance',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 14,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
             ),
