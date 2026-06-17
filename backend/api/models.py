@@ -154,6 +154,22 @@ class Complaint(models.Model):
     attachment_name = models.CharField(max_length=255, blank=True, null=True)
     attachment_type = models.CharField(max_length=50, blank=True, null=True)
 
+    # ✅ Anonymous Complaint Fields
+    is_anonymous = models.BooleanField(default=False)
+    anonymous_display_id = models.CharField(max_length=20, blank=True, null=True)
+    
+    def get_display_name(self):
+        """Return display name - hides real identity if anonymous"""
+        if self.is_anonymous:
+            return f"Anonymous #{self.anonymous_display_id or self.id}"
+        return self.student.name
+    
+    def get_display_student_id(self):
+        """Return display student ID - hides real ID if anonymous"""
+        if self.is_anonymous:
+            return f"ANON-{self.anonymous_display_id or self.id}"
+        return self.student.student_id
+
     def __str__(self):
         return f"{self.student.student_id} – {self.complaint_type} [{self.admin_type}]"
     
