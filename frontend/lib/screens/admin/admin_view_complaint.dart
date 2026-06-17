@@ -441,6 +441,37 @@ class _ViewComplaintDetailsScreenState
                           padding: const EdgeInsets.all(20),
                           child: Column(
                             children: [
+                              if (complaintData!['is_anonymous'] == true)
+                                Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3E8FF),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(color: const Color(0xFFD8B4FE)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.visibility_off, size: 16, color: Colors.purple.shade700),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Submitted anonymously — identity hidden",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.purple.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              _buildInfoRow(
+                                label: "Submitted By",
+                                value: complaintData!['display_name'] ??
+                                    (complaintData!['is_anonymous'] == true ? "Anonymous" : "N/A"),
+                                icon: Icons.person_outline,
+                              ),
+                              const Divider(height: 24),
                               _buildInfoRow(
                                 label: "Submitted On",
                                 value: complaintData!['submitted_on'] ?? "N/A",
@@ -467,7 +498,9 @@ class _ViewComplaintDetailsScreenState
                               const Divider(height: 24),
                               _buildInfoRow(
                                 label: "Roll Number",
-                                value: complaintData!['roll_number'] ?? widget.studentId,
+                                value: complaintData!['display_student_id'] ??
+                                    complaintData!['roll_number'] ??
+                                    widget.studentId,
                                 icon: Icons.badge,
                               ),
                               const Divider(height: 24),
