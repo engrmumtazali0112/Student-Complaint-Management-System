@@ -14,7 +14,6 @@ class SuperAdminProfileScreen extends StatefulWidget {
 class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
   Map<String, dynamic>? _profileData;
   bool _loading = true;
-  String? _error;
 
   @override
   void initState() {
@@ -25,7 +24,6 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
   Future<void> _loadProfile() async {
     setState(() {
       _loading = true;
-      _error = null;
     });
     try {
       // First try to get from admin profile

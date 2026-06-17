@@ -3,7 +3,7 @@ from .models import Complaint, AdminProfile
 
 
 class ComplaintDetailSerializer(serializers.ModelSerializer):
-    submitted_on = serializers.DateTimeField(source='created_at', format="%b %d, %Y")
+    submitted_on = serializers.SerializerMethodField()
     status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     # Anonymous fields
@@ -39,9 +39,12 @@ class ComplaintDetailSerializer(serializers.ModelSerializer):
     def get_display_student_id(self, obj):
         return obj.get_display_student_id()
 
+    def get_submitted_on(self, obj):
+        return obj.created_at.strftime("%b %d, %Y") if obj.created_at else None
+
 
 class SolvedComplaintSerializer(serializers.ModelSerializer):
-    resolved_at = serializers.DateTimeField(format="%b %d, %Y")
+    resolved_at = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
     display_student_id = serializers.SerializerMethodField()
 
@@ -63,6 +66,9 @@ class SolvedComplaintSerializer(serializers.ModelSerializer):
 
     def get_display_student_id(self, obj):
         return obj.get_display_student_id()
+
+    def get_resolved_at(self, obj):
+        return obj.resolved_at.strftime("%b %d, %Y") if obj.resolved_at else None
 
 
 class PendingComplaintSerializer(serializers.ModelSerializer):
@@ -102,7 +108,7 @@ class AdminComplaintListSerializer(serializers.ModelSerializer):
     student_id_display = serializers.SerializerMethodField()
     # FIX: model has no `date` field — it's `created_at`. Aliased here so the
     # API output key stays `date` without breaking serializer validation.
-    date = serializers.DateTimeField(source='created_at', format="%b %d, %Y")
+    date = serializers.SerializerMethodField()
 
     class Meta:
         model = Complaint
@@ -125,3 +131,6 @@ class AdminComplaintListSerializer(serializers.ModelSerializer):
 
     def get_student_id_display(self, obj):
         return obj.get_display_student_id()
+
+    def get_date(self, obj):
+        return obj.created_at.strftime("%b %d, %Y") if obj.created_at else None

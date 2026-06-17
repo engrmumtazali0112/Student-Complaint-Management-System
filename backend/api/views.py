@@ -382,42 +382,6 @@ def reject_complaint(request, pk):
 
 
 @api_view(['GET'])
-def rejected_complaints(request):
-    query = request.GET.get('search', '').strip()
-    complaints = Complaint.objects.filter(status='rejected').select_related('student')
-
-    if query:
-        complaints = complaints.filter(
-            Q(complaint_type__icontains=query) |
-            Q(title__icontains=query) |
-            Q(student__name__icontains=query) |
-            Q(department__icontains=query) |
-            Q(rejection_remarks__icontains=query) |
-            Q(pk__icontains=query)
-        )
-    complaints = complaints.order_by('-rejected_at')
-
-    data = [
-        {
-            'id': c.pk,
-            'complaint_type': c.complaint_type,
-            'title': c.title or c.complaint_type,
-            'department': c.department,
-            'student_id': c.student.student_id,
-            'student_name': c.student.name,
-            'rejection_remarks': c.rejection_remarks or 'No reason provided.',
-            'created_at': c.created_at.strftime('%b %d, %Y'),
-            'rejected_at': c.rejected_at.strftime('%b %d, %Y') if c.rejected_at else None,
-            'attachment': c.attachment.url if c.attachment else None,
-            'attachment_name': c.attachment_name,
-        }
-        for c in complaints
-    ]
-
-    return Response({'data': data})
-
-
-@api_view(['GET'])
 def complaint_detail_by_id(request, complaint_id):
     try:
         complaint = Complaint.objects.select_related('student').get(pk=complaint_id)
@@ -643,8 +607,8 @@ def admin_login(request):
         if is_admin:
             role = None
             name = user.get_full_name() or user.username
-            if hasattr(user, 'admin_profile') and user.admin_profile:
-                role = getattr(user.admin_profile, 'role', None)
+            if hasattr(user, 'admin_profile') and getattr(user, 'admin_profile', None):
+                role = getattr(getattr(user, 'admin_profile', None), 'role', None)
             
             return Response({
                 'success': True,
@@ -959,7 +923,7 @@ def get_admin_notifications(request):
             'student_id': display_id,
             'is_anonymous': complaint.is_anonymous,
             'complaint_id': complaint.pk,
-            'created_at': complaint.resolved_at.strftime('%Y-%m-%d %H:%M'),
+            'created_at': complaint.resolved_at.strftime('%Y-%m-%d %H:%M') if complaint.resolved_at else '',
             'is_read': False,
         })
     
@@ -981,7 +945,7 @@ def get_admin_notifications(request):
             'student_id': display_id,
             'is_anonymous': complaint.is_anonymous,
             'complaint_id': complaint.pk,
-            'created_at': complaint.rejected_at.strftime('%Y-%m-%d %H:%M'),
+            'created_at': complaint.rejected_at.strftime('%Y-%m-%d %H:%M') if complaint.rejected_at else '',
             'is_read': False,
         })
     
@@ -1303,7 +1267,7 @@ def get_escalated_complaints(request):
     for c in complaints:
         log = EscalationLog.objects.filter(complaint=c).first()
         data.append({
-            'id': c.id,
+            'id': c.pk,
             'title': c.title or c.complaint_type,
             'complaint_type': c.complaint_type,
             'description': c.description,
@@ -1336,7 +1300,7 @@ def reassign_escalated_complaint(request, complaint_id):
     
     Notification.objects.create(
         student=complaint.student,
-        message=f"🔄 Your complaint #{complaint.id} has been reassigned to {new_admin_type} department."
+        message=f"🔄 Your complaint #{complaint.pk} has been reassigned to {new_admin_type} department."
     )
     
     return Response({'success': True, 'message': 'Complaint reassigned successfully'})
@@ -1379,8 +1343,8 @@ def get_all_admin_ratings(request):
     
     data = [
         {
-            'id': r.id,
-            'complaint_id': r.complaint_id,
+            'id': r.pk,
+            'complaint_id': r.complaint.pk,
             'complaint_type': r.complaint.complaint_type,
             'admin_username': r.admin.user.username,
             'admin_role': r.admin.role,

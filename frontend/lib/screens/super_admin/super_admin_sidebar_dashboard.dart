@@ -20,7 +20,6 @@ class _SuperAdminSidebarDashboardState extends State<SuperAdminSidebarDashboard>
   int _totalCount = 0;
   int _pendingCount = 0;
   int _resolvedCount = 0;
-  int _rejectedCount = 0;
   bool _loadingStats = true;
 
   final List<Map<String, dynamic>> _menuItems = [
@@ -49,7 +48,6 @@ class _SuperAdminSidebarDashboardState extends State<SuperAdminSidebarDashboard>
           _totalCount = overall['total'] ?? 0;
           _pendingCount = overall['pending'] ?? 0;
           _resolvedCount = overall['resolved'] ?? 0;
-          _rejectedCount = overall['rejected'] ?? 0;
           _loadingStats = false;
         });
       } else {

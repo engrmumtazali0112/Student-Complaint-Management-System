@@ -33,7 +33,6 @@ class _SuperAdminRegisterScreenState extends State<SuperAdminRegisterScreen>
   
   Uint8List? _selectedProfileImageBytes;
   String? _selectedProfileImageName;
-  bool _isUploadingProfilePic = false;
 
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -97,7 +96,6 @@ class _SuperAdminRegisterScreenState extends State<SuperAdminRegisterScreen>
   Future<void> _uploadProfilePicture(String username) async {
     if (_selectedProfileImageBytes == null) return;
     
-    setState(() => _isUploadingProfilePic = true);
     
     try {
       var request = http.MultipartRequest(
@@ -126,7 +124,6 @@ class _SuperAdminRegisterScreenState extends State<SuperAdminRegisterScreen>
       debugPrint("Error uploading Super Admin profile picture: $e");
     } finally {
       if (mounted) {
-        setState(() => _isUploadingProfilePic = false);
       }
     }
   }

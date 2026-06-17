@@ -15,7 +15,6 @@ class _SuperAdminAllComplaintsScreenState extends State<SuperAdminAllComplaintsS
   List _complaints = [];
   List _filteredComplaints = [];
   bool _loading = true;
-  String _searchQuery = '';
 
   @override
   void initState() {
@@ -46,7 +45,6 @@ class _SuperAdminAllComplaintsScreenState extends State<SuperAdminAllComplaintsS
 
   void _filterComplaints(String query) {
     setState(() {
-      _searchQuery = query;
       if (query.isEmpty) {
         _filteredComplaints = _complaints;
       } else {
