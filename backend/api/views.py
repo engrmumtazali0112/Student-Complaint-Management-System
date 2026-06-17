@@ -15,6 +15,7 @@ from .serializers import (
     ComplaintDetailSerializer,
     SolvedComplaintSerializer,
     PendingComplaintSerializer,
+    AdminComplaintListSerializer,
 )
 
 
@@ -91,19 +92,25 @@ def student_register(request):
 
     return Response({'success': True, 'message': 'Registration successful'})
 
+# views.py - Update submit_complaint
 
 @api_view(['POST'])
 def submit_complaint(request):
     try:
+        # Handle file upload properly
         attachment = request.FILES.get('attachment')
         attachment_name = request.POST.get('attachment_name')
         attachment_type = request.POST.get('attachment_type')
         
-        data = request.POST.dict() if request.POST else request.data
-    except:
+        # Get data from POST or request.data
+        if request.POST:
+            data = request.POST.dict()
+        else:
+            data = request.data
+    except Exception as e:
         return Response({
             "success": False,
-            "message": "Invalid request data"
+            "message": f"Invalid request data: {str(e)}"
         }, status=400)
 
     student_id = data.get('roll_number')
@@ -113,13 +120,22 @@ def submit_complaint(request):
     title = data.get('title')
     description = data.get('description')
     admin_type = data.get('admin_type', 'administration')
+    
+    # ✅ Check if student wants to hide identity
+    is_anonymous = data.get('is_anonymous', 'false')
+    if isinstance(is_anonymous, str):
+        is_anonymous = is_anonymous.lower() in ['true', '1', 'yes']
+    else:
+        is_anonymous = bool(is_anonymous)
 
+    # Validate required fields
     if not all([student_id, department, session, complaint_type, description]):
         return Response({
             "success": False,
             "message": "All fields are required"
         }, status=400)
 
+    # Find student
     student = Student.objects.filter(student_id__iexact=student_id).first()
 
     if not student:
@@ -128,27 +144,30 @@ def submit_complaint(request):
             "message": "Student not found"
         }, status=404)
 
+    # Create complaint
     complaint = Complaint.objects.create(
         student=student,
         roll_number=student_id,
         department=department,
         session=session,
         complaint_type=complaint_type,
-        title=title,
+        title=title or complaint_type,
         description=description,
         admin_type=admin_type,
         status='pending',
         attachment=attachment,
         attachment_name=attachment_name,
         attachment_type=attachment_type,
+        is_anonymous=is_anonymous,
+        anonymous_display_id=f"ANON-{Complaint.objects.count() + 1:04d}",  # Generate unique anonymous ID
     )
 
     return Response({
         "success": True,
-        "message": "Complaint submitted successfully",
-        "complaint_id": complaint.pk
+        "message": "Complaint submitted successfully" + (" (Anonymous)" if is_anonymous else ""),
+        "complaint_id": complaint.pk,
+        "is_anonymous": is_anonymous,
     }, status=201)
-
 
 @api_view(['GET'])
 def student_dashboard(request, student_id):
@@ -271,25 +290,14 @@ def complaint_list(request):
         )
     complaints = complaints.order_by('-created_at')
 
-    data = [
-        {
-            'id': c.pk,
-            'complainant': c.student.name,
-            'student_id': c.student.student_id,
-            'title': c.title or c.complaint_type,
-            'complaint_type': c.complaint_type,
-            'status': c.status,
-            'date': c.created_at.strftime('%b %d, %Y'),
-            'admin_type': c.admin_type,
-            'attachment': c.attachment.url if c.attachment else None,
-            'attachment_name': c.attachment_name,
-        }
-        for c in complaints
-    ]
-
-    return Response({'success': True, 'count': complaints.count(), 'data': data},
-                    status=status.HTTP_200_OK)
-
+    # Use the AdminComplaintListSerializer
+    serializer = AdminComplaintListSerializer(complaints, many=True)
+    
+    return Response({
+        'success': True, 
+        'count': complaints.count(), 
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
 
 @api_view(['PATCH'])
 def update_complaint_status(request, pk):
@@ -417,31 +425,13 @@ def complaint_detail_by_id(request, complaint_id):
         return Response({'success': False, 'message': 'Complaint not found'},
                         status=status.HTTP_404_NOT_FOUND)
 
-    student = complaint.student
-
+    # Use the ComplaintDetailSerializer
+    serializer = ComplaintDetailSerializer(complaint)
+    
     return Response({
         'success': True,
-        'data': {
-            'id': complaint.pk,
-            'title': complaint.title or complaint.complaint_type,
-            'complaint_type': complaint.complaint_type,
-            'department': complaint.department,
-            'description': complaint.description,
-            'submitted_on': complaint.created_at.strftime('%b %d, %Y'),
-            'status': complaint.status,
-            'session': complaint.session,
-            'roll_number': complaint.roll_number or student.student_id,
-            'student_name': student.name,
-            'student_id': student.student_id,
-            'admin_type': complaint.admin_type,
-            'rejection_remarks': complaint.rejection_remarks or None,
-            'rejected_at': complaint.rejected_at.strftime('%b %d, %Y') if complaint.rejected_at else None,
-            'resolved_at': complaint.resolved_at.strftime('%b %d, %Y') if complaint.resolved_at else None,
-            'attachment': complaint.attachment.url if complaint.attachment else None,
-            'attachment_name': complaint.attachment_name,
-        },
+        'data': serializer.data
     }, status=status.HTTP_200_OK)
-
 
 @api_view(['GET'])
 def student_resolved_complaints(request, student_id):
@@ -487,12 +477,52 @@ def student_resolved_complaints(request, student_id):
         }, status=500)
 
 
+
+
+
+@api_view(['GET'])
+def rejected_complaints(request):
+    query = request.GET.get('search', '').strip()
+    complaints = Complaint.objects.filter(status='rejected').select_related('student')
+
+    if query:
+        complaints = complaints.filter(
+            Q(complaint_type__icontains=query) |
+            Q(title__icontains=query) |
+            Q(student__name__icontains=query) |
+            Q(department__icontains=query) |
+            Q(rejection_remarks__icontains=query) |
+            Q(pk__icontains=query)
+        )
+    complaints = complaints.order_by('-rejected_at')
+
+    data = [
+        {
+            'id': c.pk,
+            'complaint_type': c.complaint_type,
+            'title': c.title or c.complaint_type,
+            'department': c.department,
+            'student_id': c.get_display_student_id(),
+            'student_name': c.get_display_name(),
+            'is_anonymous': c.is_anonymous,
+            'rejection_remarks': c.rejection_remarks or 'No reason provided.',
+            'created_at': c.created_at.strftime('%b %d, %Y'),
+            'rejected_at': c.rejected_at.strftime('%b %d, %Y') if c.rejected_at else None,
+            'attachment': c.attachment.url if c.attachment else None,
+            'attachment_name': c.attachment_name,
+        }
+        for c in complaints
+    ]
+
+    return Response({'data': data})
+
+
 @api_view(['GET'])
 def solved_complaints(request):
     """Get only resolved complaints for admin panel"""
     admin_type = request.GET.get('admin_type', '')
     search_query = request.GET.get('search', '')
-    
+
     if admin_type:
         complaints = Complaint.objects.filter(
             status='resolved',
@@ -509,9 +539,9 @@ def solved_complaints(request):
             Q(department__icontains=search_query) |
             Q(pk__icontains=search_query)
         )
-    
+
     complaints = complaints.order_by('-resolved_at')
-    
+
     data = []
     for c in complaints:
         data.append({
@@ -520,16 +550,17 @@ def solved_complaints(request):
             'title': c.title or c.complaint_type,
             'department': c.department,
             'resolved_at': c.resolved_at.strftime('%b %d, %Y') if c.resolved_at else 'N/A',
-            'student_id': c.student.student_id,
-            'student_name': c.student.name,
+            'student_id': c.get_display_student_id(),
+            'student_name': c.get_display_name(),
+            'is_anonymous': c.is_anonymous,
             'admin_type': c.admin_type,
             'description': c.description,
             'attachment': c.attachment.url if c.attachment else None,
             'attachment_name': c.attachment_name,
         })
-    
+
     return Response({
-        'success': True, 
+        'success': True,
         'data': data,
         'count': len(data)
     })
@@ -540,7 +571,7 @@ def pending_complaints(request):
     """Get only pending complaints for admin panel"""
     admin_type = request.GET.get('admin_type', '')
     search_query = request.GET.get('search', '')
-    
+
     if admin_type:
         complaints = Complaint.objects.filter(
             status='pending',
@@ -557,15 +588,16 @@ def pending_complaints(request):
             Q(status__icontains=search_query) |
             Q(pk__icontains=search_query)
         )
-    
+
     complaints = complaints.order_by('-created_at')
-    
+
     data = []
     for c in complaints:
         data.append({
             'id': c.pk,
-            'student_name': c.student.name,
-            'student_id': c.student.student_id,
+            'student_name': c.get_display_name(),
+            'student_id': c.get_display_student_id(),
+            'is_anonymous': c.is_anonymous,
             'complaint_type': c.complaint_type,
             'title': c.title or c.complaint_type,
             'status': c.status,
@@ -575,12 +607,14 @@ def pending_complaints(request):
             'attachment': c.attachment.url if c.attachment else None,
             'attachment_name': c.attachment_name,
         })
-    
+
     return Response({
         'success': True,
         'data': data,
         'count': len(data)
     })
+
+
 
 
 @api_view(['GET'])
@@ -712,25 +746,14 @@ def get_complaints_by_admin_type(request, admin_type):
         )
     complaints = complaints.order_by('-created_at')
 
-    data = [
-        {
-            'id': c.pk,
-            'complainant': c.student.name,
-            'student_id': c.student.student_id,
-            'title': c.title or c.complaint_type,
-            'complaint_type': c.complaint_type,
-            'status': c.status,
-            'date': c.created_at.strftime('%b %d, %Y'),
-            'admin_type': c.admin_type,
-            'attachment': c.attachment.url if c.attachment else None,
-            'attachment_name': c.attachment_name,
-        }
-        for c in complaints
-    ]
-
-    return Response({'success': True, 'count': complaints.count(), 'data': data},
-                    status=status.HTTP_200_OK)
-
+    # Use the AdminComplaintListSerializer
+    serializer = AdminComplaintListSerializer(complaints, many=True)
+    
+    return Response({
+        'success': True, 
+        'count': complaints.count(), 
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def mark_complaints_seen(request):
@@ -888,11 +911,16 @@ def get_admin_notifications(request):
     ).select_related('student').order_by('-created_at')
     
     for complaint in new_complaints:
+        display_name = complaint.get_display_name()
+        display_id = complaint.get_display_student_id()
+        anon_label = " 🕵️ (Anonymous)" if complaint.is_anonymous else ""
         notifications_data.append({
             'id': complaint.pk,
             'type': 'new_complaint',
-            'message': f"📢 New complaint #{complaint.pk}: '{complaint.title or complaint.complaint_type}' from {complaint.student.name}",
-            'student_name': complaint.student.name,
+            'message': f"📢 New complaint #{complaint.pk}: '{complaint.title or complaint.complaint_type}' from {display_name}{anon_label}",
+            'student_name': display_name,
+            'student_id': display_id,
+            'is_anonymous': complaint.is_anonymous,
             'complaint_id': complaint.pk,
             'created_at': complaint.created_at.strftime('%Y-%m-%d %H:%M'),
             'is_read': False,
@@ -906,11 +934,16 @@ def get_admin_notifications(request):
     ).select_related('student').order_by('-resolved_at')
     
     for complaint in resolved_complaints:
+        display_name = complaint.get_display_name()
+        display_id = complaint.get_display_student_id()
+        anon_label = " 🕵️ (Anonymous)" if complaint.is_anonymous else ""
         notifications_data.append({
             'id': f"resolved_{complaint.pk}",
             'type': 'resolved',
-            'message': f"✅ Complaint #{complaint.pk} from {complaint.student.name} has been resolved.",
-            'student_name': complaint.student.name,
+            'message': f"✅ Complaint #{complaint.pk} from {display_name} has been resolved.{anon_label}",
+            'student_name': display_name,
+            'student_id': display_id,
+            'is_anonymous': complaint.is_anonymous,
             'complaint_id': complaint.pk,
             'created_at': complaint.resolved_at.strftime('%Y-%m-%d %H:%M'),
             'is_read': False,
@@ -923,11 +956,16 @@ def get_admin_notifications(request):
     ).select_related('student').order_by('-rejected_at')
     
     for complaint in rejected_complaints:
+        display_name = complaint.get_display_name()
+        display_id = complaint.get_display_student_id()
+        anon_label = " 🕵️ (Anonymous)" if complaint.is_anonymous else ""
         notifications_data.append({
             'id': f"rejected_{complaint.pk}",
             'type': 'rejected',
-            'message': f"❌ Complaint #{complaint.pk} from {complaint.student.name} was rejected.",
-            'student_name': complaint.student.name,
+            'message': f"❌ Complaint #{complaint.pk} from {display_name} was rejected.{anon_label}",
+            'student_name': display_name,
+            'student_id': display_id,
+            'is_anonymous': complaint.is_anonymous,
             'complaint_id': complaint.pk,
             'created_at': complaint.rejected_at.strftime('%Y-%m-%d %H:%M'),
             'is_read': False,
@@ -1456,3 +1494,34 @@ def super_admin_register(request):
         'admin_id': user.pk,
         'username': user.username,
     }, status=201)
+
+
+
+
+@api_view(['GET'])
+def get_anonymous_complaints_by_admin_type(request, admin_type):
+    """
+    Get complaints for admin with identity properly hidden for anonymous complaints.
+    This view ensures anonymous complaints show as "Anonymous #ANON-XXXX"
+    """
+    search_query = request.GET.get('search', '').strip()
+    complaints = Complaint.objects.filter(admin_type=admin_type).select_related('student')
+
+    if search_query:
+        complaints = complaints.filter(
+            Q(student__name__icontains=search_query) |
+            Q(complaint_type__icontains=search_query) |
+            Q(title__icontains=search_query) |
+            Q(anonymous_display_id__icontains=search_query) |
+            Q(pk__icontains=search_query)
+        )
+    complaints = complaints.order_by('-created_at')
+
+    # Use the AdminComplaintListSerializer which handles anonymous display
+    serializer = AdminComplaintListSerializer(complaints, many=True)
+    
+    return Response({
+        'success': True, 
+        'count': complaints.count(), 
+        'data': serializer.data
+    }, status=status.HTTP_200_OK)
