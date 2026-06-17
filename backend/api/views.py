@@ -757,8 +757,22 @@ def get_complaints_by_admin_type(request, admin_type):
 
 @api_view(['POST'])
 def mark_complaints_seen(request):
-    Complaint.objects.filter(is_seen_by_admin=False, status='pending').update(is_seen_by_admin=True)
-    return Response({'message': 'Marked as seen'})
+    complaint_id = request.data.get('complaint_id') or request.POST.get('complaint_id')
+    admin_type = request.data.get('admin_type') or request.POST.get('admin_type')
+
+    qs = Complaint.objects.filter(is_seen_by_admin=False)
+
+    if complaint_id:
+        # Mark only the specific complaint as seen
+        qs = qs.filter(pk=complaint_id)
+    elif admin_type:
+        # Mark all unseen complaints for this admin's department (when admin opens notifications)
+        qs = qs.filter(admin_type=admin_type)
+    else:
+        return Response({'message': 'No complaint_id or admin_type provided'}, status=400)
+
+    updated = qs.update(is_seen_by_admin=True)
+    return Response({'message': f'Marked {updated} complaint(s) as seen'})
 
 
 # ─────────────────────────────────────────────

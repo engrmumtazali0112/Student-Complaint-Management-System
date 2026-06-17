@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -23,15 +24,26 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
 
   // Local read tracking (since backend doesn't persist admin notification read status)
   final Set<int> _readComplaintIds = {};
+  Timer? _refreshTimer;
 
   @override
   void initState() {
     super.initState();
     _fetchNotifications();
+    // Auto-refresh every 30 seconds to catch new anonymous/regular complaints
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) _fetchNotifications(silent: true);
+    });
   }
 
-  Future<void> _fetchNotifications() async {
-    setState(() => _isLoading = true);
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _fetchNotifications({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final response = await http.get(
         Uri.parse(
@@ -60,7 +72,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
     // Optionally call backend mark‑seen endpoint
     http.post(
       Uri.parse('http://127.0.0.1:8000/api/admin/mark-seen/'),
-      body: {'complaint_id': complaintId},
+      body: {'complaint_id': complaintId.toString()},
     ).catchError((e) => debugPrint('Mark seen error: $e'));
   }
 
@@ -71,9 +83,10 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
         if (cid != null) _readComplaintIds.add(cid);
       }
     });
-    // Optional: call mark‑seen without specific id (marks all)
+    // Mark all seen for this admin's department
     http.post(
       Uri.parse('http://127.0.0.1:8000/api/admin/mark-seen/'),
+      body: {'admin_type': widget.adminType},
     ).catchError((e) => debugPrint('Mark all seen error: $e'));
   }
 
@@ -153,7 +166,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
           const SizedBox(height: 16),
           Text('No notifications', style: TextStyle(color: Colors.grey.shade500)),
           const SizedBox(height: 8),
-          Text('New complaints or status updates will appear here',
+          Text('New complaints (including anonymous) will appear here',
               style: TextStyle(color: Colors.grey.shade400, fontSize: 12)),
         ],
       ),
@@ -161,17 +174,21 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
   }
 
   Widget _buildCard(Map<String, dynamic> notification) {
-    final int? complaintId = notification['complaint_id'] as int?;
+    final int? complaintId = notification['complaint_id'] != null ? (notification['complaint_id'] as num).toInt() : null;
     final bool isRead = complaintId != null && _readComplaintIds.contains(complaintId);
     final String message = notification['message'] ?? '';
     final String createdAt = notification['created_at'] ?? '';
-    final bool isResolved = message.contains('resolved') || message.contains('✅');
-    final bool isRejected = message.contains('rejected') || message.contains('❌');
+    final String notifType = notification['type'] ?? '';
+    final bool isAnonymous = notification['is_anonymous'] == true;
+    final bool isResolved = notifType == 'resolved' || message.contains('✅');
+    final bool isRejected = notifType == 'rejected' || message.contains('❌');
     final Color accent = isResolved
         ? const Color(0xFF10B981)
         : isRejected
             ? const Color(0xFFDC2626)
-            : const Color(0xFF2B6CB0);
+            : isAnonymous
+                ? const Color(0xFF8B5CF6)
+                : const Color(0xFF2B6CB0);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -205,7 +222,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
-                    isResolved ? Icons.check_circle_outline : (isRejected ? Icons.cancel_outlined : Icons.notifications_outlined),
+                    isResolved
+                        ? Icons.check_circle_outline
+                        : isRejected
+                            ? Icons.cancel_outlined
+                            : isAnonymous
+                                ? Icons.visibility_off_outlined
+                                : Icons.notifications_outlined,
                     color: accent,
                     size: 22,
                   ),
@@ -215,6 +238,31 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (isAnonymous)
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF8B5CF6).withAlpha(20),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF8B5CF6).withAlpha(60)),
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.visibility_off, size: 11, color: Color(0xFF8B5CF6)),
+                              SizedBox(width: 4),
+                              Text(
+                                'Anonymous Complaint',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF8B5CF6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       Text(
                         message,
                         style: TextStyle(
