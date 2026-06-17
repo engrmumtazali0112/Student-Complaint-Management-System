@@ -39,6 +39,7 @@ from .views import (
     mark_student_resolved_seen,
     # ── Super Admin endpoints ──
     super_admin_login,
+    get_anonymous_complaints_by_admin_type,
     super_admin_dashboard_stats,
     get_escalated_complaints,
     reassign_escalated_complaint,
@@ -73,7 +74,9 @@ urlpatterns = [
     path('student/notifications/mark-all-read/<path:student_id>/',
          mark_all_student_notifications_read,
          name='mark_all_student_notifications_read'),
-
+    path('admin/anonymous-complaints/<str:admin_type>/', 
+         get_anonymous_complaints_by_admin_type, 
+         name='get_anonymous_complaints_by_admin_type'),
     # ── Student resolved/rejected counts ──────────────────────
     path('student/resolved-count/<path:student_id>/',
          get_student_resolved_count,
