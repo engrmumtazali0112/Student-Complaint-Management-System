@@ -6,6 +6,7 @@ import 'admin_role_rejected_complaints.dart';
 import 'admin_notifications_screen.dart';
 import '../shared/welcome.dart';
 import 'admin_profile_screen.dart';
+import 'admin_anonymous_complaints.dart';  // ✅ Import
 
 class AdminSidebarDashboard extends StatefulWidget {
   final String adminRole;
@@ -36,6 +37,7 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
 
   final List<Map<String, dynamic>> menuItems = [
     {'title': 'Profile', 'icon': Icons.person_outline, 'filter': 'profile'},
+    {'title': 'Anonymous Complaints', 'icon': Icons.visibility_off, 'filter': 'anonymous'},  // ✅ Added
     {'title': 'All Complaints', 'icon': Icons.list_alt, 'filter': 'all'},
     {'title': 'Pending Complaints', 'icon': Icons.pending_actions, 'filter': 'pending'},
     {'title': 'Resolved Complaints', 'icon': Icons.check_circle_outline, 'filter': 'resolved'},
@@ -304,20 +306,43 @@ class _AdminSidebarDashboardState extends State<AdminSidebarDashboard> {
           adminUsername: widget.adminUsername,
         );
       case 1:
-        return AdminRoleComplaintsScreen(adminRole: widget.adminRole, title: "All Complaints", filter: "all");
+        // ✅ Anonymous Complaints - Fixed to use correct screen
+        return AdminAnonymousComplaintsScreen(
+          adminRole: widget.adminRole,
+          title: "Anonymous Complaints",
+        );
       case 2:
-        return AdminRoleComplaintsScreen(adminRole: widget.adminRole, title: "Pending Complaints", filter: "pending");
+        return AdminRoleComplaintsScreen(
+          adminRole: widget.adminRole, 
+          title: "All Complaints", 
+          filter: "all"
+        );
       case 3:
-        return AdminRoleComplaintsScreen(adminRole: widget.adminRole, title: "Resolved Complaints", filter: "resolved");
+        return AdminRoleComplaintsScreen(
+          adminRole: widget.adminRole, 
+          title: "Pending Complaints", 
+          filter: "pending"
+        );
       case 4:
-        return AdminRoleRejectedComplaintsScreen(adminRole: widget.adminRole);
+        return AdminRoleComplaintsScreen(
+          adminRole: widget.adminRole, 
+          title: "Resolved Complaints", 
+          filter: "resolved"
+        );
       case 5:
+        return AdminRoleRejectedComplaintsScreen(adminRole: widget.adminRole);
+      case 6:
         return AdminNotificationsScreen(
           adminType: widget.adminRole,
           adminUsername: widget.adminUsername,
         );
       default:
-        return const Center(child: Text('Select an option'));
+        return const Center(
+          child: Text(
+            'Select an option',
+            style: TextStyle(color: Color(0xFF1A365D)),
+          ),
+        );
     }
   }
 }
