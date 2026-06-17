@@ -27,6 +27,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
   bool isLoading = false;
   bool isLoadingDepartments = true;
   
+  // ✅ New: Anonymous toggle state
+  bool hideIdentity = false;
+  
   List<Map<String, dynamic>> availableDepartments = [];
   
   final List<String> complaintTypes = [
@@ -93,7 +96,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-        withData: true, // required for Flutter Web
+        withData: true,
       );
 
       if (result != null && mounted) {
@@ -169,6 +172,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       request.fields['description'] = descriptionController.text.trim();
       request.fields['admin_type'] = selectedAdminType!;
       
+      // ✅ New: Send anonymous flag to backend
+      request.fields['is_anonymous'] = hideIdentity ? 'true' : 'false';
+      
       if (selectedFileBytes != null && fileName != null) {
         request.files.add(
           http.MultipartFile.fromBytes(
@@ -187,7 +193,11 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
       if (response.statusCode == 201) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
-          _showSuccessSnackBar('Complaint submitted successfully!');
+          // Show success message with anonymous note if applicable
+          final successMessage = hideIdentity 
+              ? 'Complaint submitted anonymously!' 
+              : 'Complaint submitted successfully!';
+          _showSuccessSnackBar(successMessage);
           
           titleController.clear();
           descriptionController.clear();
@@ -196,6 +206,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
             selectedFileBytes = null;
             fileName = null;
             fileMimeType = null;
+            hideIdentity = false; // Reset anonymous toggle
           });
 
           Navigator.pushAndRemoveUntil(
@@ -207,7 +218,7 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                 studentUsername: widget.studentId,
               ),
             ),
-            (route) => false, // clears the entire back stack
+            (route) => false,
           );
         } else {
           _showErrorSnackBar(data['message'] ?? 'Submission failed');
@@ -501,6 +512,87 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                               ),
                               const SizedBox(height: 24),
 
+                              // ✅ New: Anonymous Identity Toggle
+                              Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0F4F8),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Switch(
+                                      value: hideIdentity,
+                                      onChanged: (value) {
+                                        setState(() {
+                                          hideIdentity = value;
+                                        });
+                                      },
+                                      activeThumbColor: const Color(0xFF2B6CB0),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text(
+                                            'Hide My Identity',
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF1A365D),
+                                            ),
+                                          ),
+                                          Text(
+                                            hideIdentity
+                                                ? 'Your name and student ID will be hidden. Displayed as "Anonymous #ANON-XXXX"'
+                                                : 'Your name and student ID will be visible to admins',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: hideIdentity 
+                                                  ? Colors.green.shade700 
+                                                  : Colors.grey.shade600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // ✅ New: Anonymous Info Box (shown when toggled on)
+                              if (hideIdentity) ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFEF3C7),
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: const Color(0xFFF59E0B)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.info_outline, color: Color(0xFFF59E0B), size: 18),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Your identity will be hidden from admins. Only your complaint details will be visible with an anonymous ID.',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: const Color(0xFF92400E),
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+
+                              const SizedBox(height: 24),
+
                               // Submit Button
                               SizedBox(
                                 width: double.infinity,
@@ -508,7 +600,9 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                                 child: ElevatedButton(
                                   onPressed: isLoading ? null : submitComplaint,
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF2B6CB0),
+                                    backgroundColor: hideIdentity 
+                                        ? const Color(0xFF10B981)  // Green for anonymous
+                                        : const Color(0xFF2B6CB0), // Blue for normal
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -522,13 +616,28 @@ class _SubmitComplaintScreenState extends State<SubmitComplaintScreen> {
                                             strokeWidth: 2,
                                           ),
                                         )
-                                      : const Text(
-                                          "Submit Complaint",
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              hideIdentity 
+                                                  ? Icons.visibility_off 
+                                                  : Icons.visibility,
+                                              color: Colors.white,
+                                              size: 20,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              hideIdentity 
+                                                  ? 'Submit Anonymously' 
+                                                  : 'Submit Complaint',
+                                              style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                 ),
                               ),
