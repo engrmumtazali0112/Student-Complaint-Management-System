@@ -261,7 +261,7 @@ class _StudentNotificationsScreenState
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      color: const Color(0xFF2B6CB0).withOpacity(0.2),
+      color: const Color(0xFF2B6CB0).withValues(alpha: 0.2),
       child: Text(
         '$_unreadCount unread notification${_unreadCount > 1 ? 's' : ''}',
         style: const TextStyle(
@@ -299,14 +299,14 @@ class _StudentNotificationsScreenState
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: isRead ? Colors.white : accent.withOpacity(0.18),
+        color: isRead ? Colors.white : accent.withValues(alpha: 0.18),
         borderRadius: BorderRadius.circular(16),
         border: isRead
             ? null
-            : Border.all(color: accent.withOpacity(0.6), width: 1),
+            : Border.all(color: accent.withValues(alpha: 0.6), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.15),
+            color: Colors.grey.withValues(alpha: 0.15),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -325,7 +325,7 @@ class _StudentNotificationsScreenState
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: accent.withOpacity(isRead ? 20 : 35),
+                    color: accent.withValues(alpha: isRead ? 20 : 35),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(notifIcon, color: accent, size: 22),
@@ -559,11 +559,11 @@ class _ComplaintDetailSheetState extends State<_ComplaintDetailSheet> {
                                       horizontal: 12, vertical: 6),
                                   decoration: BoxDecoration(
                                     color: _statusColor(_data!['status'])
-                                        .withOpacity(0.25),
+                                        .withValues(alpha: 0.25),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                         color: _statusColor(_data!['status'])
-                                            .withOpacity(0.8)),
+                                            .withValues(alpha: 0.8)),
                                   ),
                                   child: Text(
                                     (_data!['status'] as String? ?? '')
