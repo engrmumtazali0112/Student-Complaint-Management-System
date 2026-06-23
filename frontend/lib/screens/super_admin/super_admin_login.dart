@@ -61,7 +61,7 @@ class _SuperAdminLoginScreenState extends State<SuperAdminLoginScreen>
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/super-admin/login/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminLogin}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'username': username, 'password': password}),
       );

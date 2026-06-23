@@ -1,4 +1,4 @@
-  // lib/screens/super_admin/super_admin_ratings_screen.dart
+// lib/screens/super_admin/super_admin_ratings_screen.dart
 //
 // Feature 3 – Super Admin views all admin performance ratings
 //
@@ -40,7 +40,7 @@ class _SuperAdminRatingsScreenState extends State<SuperAdminRatingsScreen> {
     try {
       final query = _filterDept.isNotEmpty ? '?admin_type=$_filterDept' : '';
       final res = await http.get(
-          Uri.parse('${ApiConstants.baseUrl}/super-admin/admin-ratings/$query'));
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminAdminRatings}$query'));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         setState(() { _ratings = body['data'] ?? []; _loading = false; });

@@ -49,7 +49,7 @@ class _SuperAdminDashboardState extends State<SuperAdminDashboard>
     });
     try {
       final res = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/super-admin/stats/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminStats}'),
       );
       if (res.statusCode == 200) {
         setState(() {

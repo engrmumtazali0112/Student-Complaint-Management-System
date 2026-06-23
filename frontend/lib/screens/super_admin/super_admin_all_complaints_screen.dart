@@ -26,7 +26,7 @@ class _SuperAdminAllComplaintsScreenState extends State<SuperAdminAllComplaintsS
     setState(() => _loading = true);
     try {
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/admin/complaint/'),
+        Uri.parse('${ApiConstants.baseUrl}/api/admin/complaint/'),
       );
       if (response.statusCode == 200 && mounted) {
         final data = json.decode(response.body);

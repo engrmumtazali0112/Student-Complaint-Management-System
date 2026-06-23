@@ -37,7 +37,7 @@ class _SuperAdminEscalatedScreenState
     setState(() { _loading = true; _error = null; });
     try {
       final res = await http.get(
-          Uri.parse('${ApiConstants.baseUrl}/super-admin/escalated/'));
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminEscalated}'));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         setState(() {
@@ -94,7 +94,7 @@ class _SuperAdminEscalatedScreenState
     _showLoading('Reassigning...');
     try {
       final res = await http.post(
-        Uri.parse('\${ApiConstants.baseUrl}/super-admin/reassign/\$id/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminReassign}$id/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'new_admin_type': newType}),
       );
@@ -107,7 +107,7 @@ class _SuperAdminEscalatedScreenState
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      _showSnack('Error: \$e', Colors.red);
+      _showSnack('Error: $e', Colors.red);
     }
   }
 
@@ -133,7 +133,7 @@ class _SuperAdminEscalatedScreenState
     _showLoading('Resolving...');
     try {
       final res = await http.post(
-          Uri.parse('\${ApiConstants.baseUrl}/super-admin/resolve/\$id/'));
+          Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminResolve}$id/'));
       if (!mounted) return;
       Navigator.pop(context);
       final body = json.decode(res.body);
@@ -143,7 +143,7 @@ class _SuperAdminEscalatedScreenState
     } catch (e) {
       if (!mounted) return;
       Navigator.pop(context);
-      _showSnack('Error: \$e', Colors.red);
+      _showSnack('Error: $e', Colors.red);
     }
   }
 

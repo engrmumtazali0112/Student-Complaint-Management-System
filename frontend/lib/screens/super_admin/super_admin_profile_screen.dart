@@ -28,7 +28,7 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
     try {
       // First try to get from admin profile
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/admin/profile/${widget.username}/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.adminProfile}${widget.username}/'),
       );
       
       if (response.statusCode == 200 && mounted) {

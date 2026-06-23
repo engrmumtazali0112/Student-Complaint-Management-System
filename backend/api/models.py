@@ -174,10 +174,10 @@ class Complaint(models.Model):
         return f"{self.student.student_id} – {self.complaint_type} [{self.admin_type}]"
     
     def is_escalation_needed(self):
-        """Check if complaint needs escalation (pending for 3+ days)"""
+        """Check if complaint needs escalation (pending for 1+ day)"""
         if self.status == 'pending' and self.created_at:
             delta = timezone.now() - self.created_at
-            return delta.days >= 3
+            return delta.days >= 1
         return False
 
 
@@ -200,7 +200,7 @@ class SuperAdmin(models.Model):
 class EscalationLog(models.Model):
     complaint = models.ForeignKey(Complaint, on_delete=models.CASCADE, related_name='escalations')
     escalated_at = models.DateTimeField(auto_now_add=True)
-    reason = models.CharField(max_length=255, default="Pending for more than 3 days")
+    reason = models.CharField(max_length=255, default="Pending for more than 1 day")
     is_resolved_by_super_admin = models.BooleanField(default=False)
 
     def __str__(self):

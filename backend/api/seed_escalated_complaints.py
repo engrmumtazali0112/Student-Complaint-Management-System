@@ -93,8 +93,8 @@ class Command(BaseCommand):
             # Create EscalationLog — this is what Super Admin reads
             EscalationLog.objects.create(
                 complaint=complaint,
-                reason=f'Pending for more than 3 days ({days_old} days)',
-                escalated_at=timezone.now() - timedelta(days=days_old - 3),
+                reason=f'Pending for more than 1 day ({days_old} days)',
+                escalated_at=timezone.now() - timedelta(days=days_old - 1),
             )
 
             label = 'Anonymous' if is_anonymous else student.name

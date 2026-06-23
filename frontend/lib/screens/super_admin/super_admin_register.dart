@@ -100,7 +100,7 @@ class _SuperAdminRegisterScreenState extends State<SuperAdminRegisterScreen>
     try {
       var request = http.MultipartRequest(
         'POST',
-        Uri.parse('${ApiConstants.baseUrl}/super-admin/upload-profile-pic/'),
+        Uri.parse('${ApiConstants.baseUrl}/api/super-admin/upload-profile-pic/'),
       );
       
       request.fields['username'] = username;
@@ -158,7 +158,7 @@ class _SuperAdminRegisterScreenState extends State<SuperAdminRegisterScreen>
 
     try {
       final response = await http.post(
-        Uri.parse('${ApiConstants.baseUrl}/super-admin/register/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminRegister}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'name': name,
