@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.utils import timezone
+from datetime import timedelta
 
 
 # ─────────────────────────────────────────────
@@ -161,23 +162,31 @@ class Complaint(models.Model):
     def get_display_name(self):
         """Return display name - hides real identity if anonymous"""
         if self.is_anonymous:
-            return f"Anonymous #{self.anonymous_display_id or self.id}"
+            return f"Anonymous #{self.anonymous_display_id or self.pk}"
         return self.student.name
     
     def get_display_student_id(self):
         """Return display student ID - hides real ID if anonymous"""
         if self.is_anonymous:
-            return f"ANON-{self.anonymous_display_id or self.id}"
+            return f"ANON-{self.anonymous_display_id or self.pk}"
         return self.student.student_id
 
     def __str__(self):
         return f"{self.student.student_id} – {self.complaint_type} [{self.admin_type}]"
     
+    # ── Escalation threshold ──────────────────────────────────
+    # PRODUCTION value: timedelta(days=1)
+    # While you're testing the escalation pipeline end-to-end, set this
+    # to something short (e.g. timedelta(minutes=10)) so you don't have
+    # to wait a full day to confirm it works. Revert to days=1 when done.
+    ESCALATION_THRESHOLD = timedelta(minutes=10)  # TEST MODE — change back to timedelta(days=1) after testing
+    ESCALATION_LABEL = '10 minutes (TEST MODE)'   # shown in the EscalationLog reason text
+
     def is_escalation_needed(self):
-        """Check if complaint needs escalation (pending for 1+ day)"""
+        """Check if complaint has been pending longer than ESCALATION_THRESHOLD."""
         if self.status == 'pending' and self.created_at:
             delta = timezone.now() - self.created_at
-            return delta.days >= 1
+            return delta >= self.ESCALATION_THRESHOLD
         return False
 
 
@@ -204,7 +213,7 @@ class EscalationLog(models.Model):
     is_resolved_by_super_admin = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Complaint #{self.complaint.id} escalated on {self.escalated_at}"
+        return f"Complaint #{self.complaint.pk} escalated on {self.escalated_at}"
 
 
 # ─────────────────────────────────────────────
@@ -220,4 +229,4 @@ class AdminRating(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Rating {self.rating} for {self.admin.user.username} (Complaint #{self.complaint.id})"
+        return f"Rating {self.rating} for {self.admin.user.username} (Complaint #{self.complaint.pk})"
