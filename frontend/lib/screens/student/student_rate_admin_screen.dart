@@ -69,7 +69,7 @@ class _StudentRateAdminScreenState extends State<StudentRateAdminScreen> {
   Future<void> _checkExistingRating() async {
     try {
       final res = await http.get(Uri.parse(
-          '${ApiConstants.baseUrl}/student/complaint-rating/${widget.complaintId}/'));
+          '${ApiConstants.baseUrl}/api/student/complaint-rating/${widget.complaintId}/'));
       if (res.statusCode == 200) {
         final body = json.decode(res.body);
         setState(() {
@@ -90,18 +90,24 @@ class _StudentRateAdminScreenState extends State<StudentRateAdminScreen> {
     try {
       final res = await http.post(
         Uri.parse(
-            '${ApiConstants.baseUrl}/student/rate-admin/${widget.complaintId}/'),
+            '${ApiConstants.baseUrl}/api/student/rate-admin/${widget.complaintId}/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'rating':  _selectedRating,
           'comment': _commentCtrl.text.trim(),
         }),
       );
-      final body = json.decode(res.body);
-      if (res.statusCode == 200) {
+      String? body0Error;
+      Map body = {};
+      try {
+        body = json.decode(res.body);
+      } catch (_) {
+        body0Error = 'Server returned an unexpected response (HTTP ${res.statusCode}).';
+      }
+      if (res.statusCode == 200 && body0Error == null) {
         _showSuccessDialog();
       } else {
-        _showSnack(body['error'] ?? 'Submission failed', Colors.red);
+        _showSnack(body0Error ?? body['error'] ?? 'Submission failed', Colors.red);
       }
     } catch (e) {
       _showSnack('Network error: $e', Colors.red);
