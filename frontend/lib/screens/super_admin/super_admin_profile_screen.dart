@@ -13,32 +13,37 @@ class SuperAdminProfileScreen extends StatefulWidget {
 
 class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
   Map<String, dynamic>? _profileData;
+  Map<String, dynamic>? _statsData;
   bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    _loadData();
   }
 
-  Future<void> _loadProfile() async {
+  Future<void> _loadData() async {
     setState(() {
       _loading = true;
     });
     try {
-      // First try to get from admin profile
-      final response = await http.get(
+      // Load profile
+      final profileResponse = await http.get(
         Uri.parse('${ApiConstants.baseUrl}${ApiConstants.adminProfile}${widget.username}/'),
       );
       
-      if (response.statusCode == 200 && mounted) {
-        final data = json.decode(response.body);
+      // Load stats
+      final statsResponse = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminStats}'),
+      );
+      
+      if (profileResponse.statusCode == 200 && mounted) {
+        final data = json.decode(profileResponse.body);
         setState(() {
           _profileData = data['data'];
-          _loading = false;
         });
       } else {
-        // If no profile exists, create default profile data
+        // Default profile data
         setState(() {
           _profileData = {
             'name': 'Super Admin',
@@ -51,11 +56,21 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
             'created_at': DateTime.now().year.toString(),
             'profile_picture': null,
           };
-          _loading = false;
         });
       }
+      
+      if (statsResponse.statusCode == 200 && mounted) {
+        final data = json.decode(statsResponse.body);
+        setState(() {
+          _statsData = data['overall'] ?? {};
+        });
+      }
+      
+      setState(() {
+        _loading = false;
+      });
     } catch (e) {
-      // On error, show default profile
+      // On error, show default data
       setState(() {
         _profileData = {
           'name': 'Super Admin',
@@ -68,6 +83,11 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
           'created_at': DateTime.now().year.toString(),
           'profile_picture': null,
         };
+        _statsData = {
+          'total': 0,
+          'pending': 0,
+          'resolved': 0,
+        };
         _loading = false;
       });
     }
@@ -75,6 +95,10 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final total = _statsData?['total'] ?? 0;
+    final pending = _statsData?['pending'] ?? 0;
+    final resolved = _statsData?['resolved'] ?? 0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF0F4FF),
       appBar: AppBar(
@@ -85,7 +109,7 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: _loadProfile,
+            onPressed: _loadData,
             tooltip: 'Refresh',
           ),
         ],
@@ -153,8 +177,29 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Stats Row
-                  _buildStatsRow(),
+                  // Stats Row - Now showing real data
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.grey.withValues(alpha: 0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildStatItem('Total', total.toString(), Icons.format_list_numbered, const Color(0xFF1565C0)),
+                        _buildStatItem('Pending', pending.toString(), Icons.pending_actions, const Color(0xFFFFA726)),
+                        _buildStatItem('Resolved', resolved.toString(), Icons.check_circle, const Color(0xFF4CAF50)),
+                      ],
+                    ),
+                  ),
 
                   const SizedBox(height: 20),
 
@@ -229,31 +274,6 @@ class _SuperAdminProfileScreenState extends State<SuperAdminProfileScreen> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildStatsRow() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _buildStatItem('Total', '6', Icons.format_list_numbered, const Color(0xFF1565C0)),
-          _buildStatItem('Pending', '0', Icons.pending_actions, const Color(0xFFFFA726)),
-          _buildStatItem('Resolved', '4', Icons.check_circle, const Color(0xFF4CAF50)),
-        ],
-      ),
     );
   }
 
