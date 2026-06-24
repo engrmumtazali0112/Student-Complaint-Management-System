@@ -38,8 +38,12 @@ class _SuperAdminSidebarDashboardState extends State<SuperAdminSidebarDashboard>
   Future<void> _loadStats() async {
     setState(() => _loadingStats = true);
     try {
+      // FIX: was hardcoded as '${ApiConstants.baseUrl}/super-admin/stats/'
+      // which skipped the API prefix baked into ApiConstants.superAdminStats
+      // and silently 404'd, leaving counts stuck at 0. Now uses the same
+      // constant as the Profile screen, which fetches correctly.
       final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}/super-admin/stats/'),
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.superAdminStats}'),
       );
       if (response.statusCode == 200 && mounted) {
         final data = json.decode(response.body);
@@ -107,7 +111,16 @@ class _SuperAdminSidebarDashboardState extends State<SuperAdminSidebarDashboard>
                       const SizedBox(height: 4),
                       Text(widget.username, style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12)),
                       const SizedBox(height: 16),
-                      if (!_loadingStats)
+                      if (_loadingStats)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 4),
+                          child: SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          ),
+                        )
+                      else
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8),
                           child: Row(
@@ -140,7 +153,13 @@ class _SuperAdminSidebarDashboardState extends State<SuperAdminSidebarDashboard>
                           )),
                           tileColor: isSelected ? const Color(0xFF1565C0).withValues(alpha: 0.1) : null,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                          onTap: () => setState(() => _selectedIndex = index),
+                          onTap: () {
+                            setState(() => _selectedIndex = index);
+                            // Keep sidebar counts fresh whenever the user
+                            // navigates between sections (e.g. after
+                            // resolving/reassigning an escalated complaint).
+                            _loadStats();
+                          },
                         ),
                       );
                     },
